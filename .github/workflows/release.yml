@@ -1,0 +1,55 @@
+name: Release
+# Push a tag like v0.3.0 (or v0.3.0-beta1) -> tests -> zip -> GitHub release -> CurseForge.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install lupa
+      - run: git clone --depth 1 https://github.com/Questie/QuestieDB.git ../QuestieDB
+
+      - name: Tests must pass before anything ships
+        run: |
+          python3 tests/run.py --qdb ../QuestieDB
+          python3 tests/run.py
+
+      - name: Check tag matches the TOC version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          grep -q "## Version: $VERSION" Rafeeq/Rafeeq.toc || { echo "TOC version != tag $VERSION"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Package
+        run: |
+          ZIP="Rafeeq-v$VERSION.zip"
+          zip -qr "$ZIP" Rafeeq -x "*.DS_Store"
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          # release notes = this version's CHANGELOG section
+          awk "/^## v$VERSION /{f=1;next} /^## v/{f=0} f" CHANGELOG.md > notes.md
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRE=""
+          case "$VERSION" in *alpha*|*beta*) PRE="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" "$ZIP" --title "Rafeeq v$VERSION" --notes-file notes.md $PRE
+
+      - name: Upload to CurseForge
+        if: ${{ vars.CF_PROJECT_ID != '' }}
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_PROJECT_ID: ${{ vars.CF_PROJECT_ID }}
+          CF_GAME_VERSIONS: ${{ vars.CF_GAME_VERSIONS }}
+          CHANGELOG_FILE: notes.md
+        run: sh scripts/upload-curseforge.sh
