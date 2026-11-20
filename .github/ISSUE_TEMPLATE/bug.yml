@@ -1,0 +1,39 @@
+name: Bug report / بلاغ عن مشكلة
+description: Something is broken or shows a Lua error
+labels: ["bug", "triage"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Rafeeq version / نسخة الإضافة
+      placeholder: "0.3.0  (shown in /rf or the CurseForge app)"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / شو صار؟
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Lua error (if any) / رسالة الخطأ
+      description: Type /console scriptErrors 1, reproduce, then paste the full error text.
+      render: text
+  - type: input
+    id: character
+    attributes:
+      label: Class, level, zone / الكلاس واللفل والمنطقة
+      placeholder: "Warrior 14, Westfall"
+  - type: dropdown
+    id: language
+    attributes:
+      label: Addon language / لغة الإضافة
+      options: ["English", "العربية"]
+  - type: input
+    id: others
+    attributes:
+      label: Other addons / إضافات ثانية مثبتة
+      placeholder: "QuestieDB, Details, ..."
