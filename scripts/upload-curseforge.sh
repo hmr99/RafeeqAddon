@@ -21,7 +21,7 @@ METADATA=$(jq -n \
   --argjson versions "[$GAME_VERSIONS]" \
   '{changelog: $changelog, changelogType: "markdown", displayName: $name, releaseType: $type,
     gameVersions: $versions,
-    relations: {projects: [{slug: "questiedb", type: "optionalDependency"}]}}')
+    relations: {projects: [{slug: "questiedb", type: "requiredDependency"}]}}')
 
 response=$(curl -sS -w '\n%{http_code}' \
   -H "X-Api-Token: $CF_API_TOKEN" \

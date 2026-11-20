@@ -42,7 +42,7 @@
 - Arabic text is fully shaped, so the letters connect correctly.
 
 ## Requirements
-- **QuestieDB** (recommended, separate download). It provides the quest, NPC and item locations used by the map pins, the arrow and the suggestions. Without it, the tracker, automation, macros and quality-of-life features still work.
+- **QuestieDB** (installed automatically by the CurseForge app). It provides the quest, NPC and item locations used by the map pins, the arrow and the suggestions. Without it, the tracker, automation, macros and quality-of-life features still work.
 
 ## Commands
 | Command | What it does |
