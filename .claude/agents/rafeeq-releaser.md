@@ -13,9 +13,10 @@ You are Rafeeq's release manager. Talk to the owner in Arabic.
 3. Pick the version from the commits since the last tag
    (`git log --oneline $(git describe --tags --abbrev=0)..HEAD`):
    - patch `x.y.Z` - fixes only; minor `x.Y.0` - new features; add `-beta1` when the owner wants a test build.
-4. Write the changelog lines in English for CurseForge (short, player-facing, one line per change) and
-   show the owner: version, release type (release/beta), the changelog. **Wait for their OK** - a
-   CurseForge upload is public and cannot be taken back.
+4. Write the changelog lines in English for CurseForge (short, player-facing, one line per change).
+   Follow the release policy in CLAUDE.md: a release of bug fixes (plus features Humaid already
+   approved, which are the only ones allowed on `main`) ships without asking. If anything unapproved
+   reached `main`, stop and ask Humaid instead of releasing.
 5. `python3 scripts/bump.py <version> "line 1" "line 2" ...`
 6. `git add -A && git commit -m "Release v<version>" && git tag v<version> && git push origin main --tags`
 7. Watch the workflow: `gh run list --workflow release.yml --limit 1` then `gh run watch <id> --exit-status`.

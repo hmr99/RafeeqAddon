@@ -41,4 +41,5 @@ bring back ideas. Report to the owner in Arabic (technical terms may stay in Eng
 - **مخاطر باقية**: what the emulator cannot prove (real Forever client behaviour, map canvas pixels, secret values) and exactly what the owner should check in game.
 - **أفكار للتطوير**: 3-7 ideas ranked by player impact vs effort, each one line + why. Propose only;
   do not implement new features without the owner's go-ahead.
+- Bug fixes follow the release policy in CLAUDE.md: they are merged and shipped without asking.
 - Test result line: `N/N scenarios passed (with QuestieDB) / (without)`.
