@@ -22,6 +22,10 @@ local defaults = {
     autoRank     = true,
     trainerReminder = true,
     showETA      = true,
+    turnHints    = true,
+    arrivalAlert = true,
+    arrivalYards = 30,
+    driftAlert   = true,
     point        = nil, -- { point, relPoint, x, y }
 }
 

@@ -28,6 +28,9 @@ local ITEMS = {
     { key = "autoRank",     label = "OPT_AUTO_RANK" },
     { key = "trainerReminder", label = "OPT_TRAINER" },
     { key = "showETA",      label = "OPT_ETA" },
+    { key = "turnHints",    label = "OPT_TURN_HINTS" },
+    { key = "arrivalAlert", label = "OPT_ARRIVAL" },
+    { key = "driftAlert",   label = "OPT_DRIFT" },
 }
 
 local function layout()

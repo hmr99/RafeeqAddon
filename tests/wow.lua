@@ -211,6 +211,10 @@ function IsShiftKeyDown() return W.shift or false end
 function GetCVar(k) return W.cvars[k] end
 function GetPlayerFacing() return W.facing end
 function GetMaxPlayerLevel() return 60 end
+W.sounds = {}
+SOUNDKIT = { READY_CHECK = 8960, IG_QUEST_LOG_ABANDON_QUEST = 846 }
+function PlaySound(id) W.sounds[#W.sounds + 1] = id return true end
+function GetUnitSpeed() return W.speed or 0, 7, 7, 4.7 end
 
 -- unit
 function UnitLevel() return W.level end

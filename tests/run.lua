@@ -19,7 +19,7 @@ local W = dofile("tests/wow.lua")
 ---------------------------------------------------------------------------
 local ALLOWED_GLOBALS = {
     RafeeqDB = true, RafeeqCharDB = true, SLASH_RAFEEQ1 = true, SLASH_RAFEEQ2 = true,
-    RafeeqTracker = true, RafeeqArrow = true, RafeeqSuggest = true, RafeeqOptions = true, RafeeqMacros = true, RafeeqLanguagePicker = true,
+    RafeeqTracker = true, RafeeqArrow = true, RafeeqSuggest = true, RafeeqOptions = true, RafeeqMacros = true, RafeeqLanguagePicker = true, RafeeqNavBanner = true,
 }
 local before = {}
 for k in pairs(_G) do before[k] = true end
@@ -135,6 +135,45 @@ scenario("arrow follows player", function()
     W.facing = math.pi W.advance(0.2)
     W.px, W.py = 0.505, 0.376 W.advance(2.5)
     W.instance = true W.advance(0.5) W.instance = false -- no position inside instances
+end)
+
+scenario("auto-run guidance: turn hints, arrival, drift", function()
+    W.map, W.px, W.py, W.facing, W.speed = 1429, 0.48, 0.42, 0, 0
+    local function hintText()
+        for _, f in ipairs(W.frames) do
+            if f._parent == RafeeqArrow and f._kind == "FontString" and f._shown then
+                for _, k in ipairs({ "NAV_AHEAD", "NAV_LEFT", "NAV_RIGHT", "NAV_BEHIND" }) do
+                    if f._text == ns.L(k) then return k end
+                end
+            end
+        end
+    end
+    ns.Nav:SetPoint(1429, 48, 30, "north")   W.advance(0.2)
+    check(hintText() == "NAV_AHEAD", "north target while facing north should be 'ahead', got " .. tostring(hintText()))
+    ns.Nav:SetPoint(1429, 40, 42, "west")    W.advance(0.2)
+    check(hintText() == "NAV_LEFT", "west target while facing north should be 'turn left', got " .. tostring(hintText()))
+    ns.Nav:SetPoint(1429, 56, 42, "east")    W.advance(0.2)
+    check(hintText() == "NAV_RIGHT", "east target should be 'turn right', got " .. tostring(hintText()))
+    ns.Nav:SetPoint(1429, 48, 55, "south")   W.advance(0.2)
+    check(hintText() == "NAV_BEHIND", "south target should be 'behind', got " .. tostring(hintText()))
+    -- drift: running west while the target is north
+    ns.Nav:SetPoint(1429, 48, 30, "north")
+    W.sounds = {} W.facing = math.pi / 2 W.speed = 7
+    W.advance(3)
+    check(#W.sounds >= 1 and W.sounds[1] == 846, "no drift alert while running off course")
+    check(RafeeqNavBanner:IsShown(), "drift banner not shown")
+    -- arrival: once only
+    W.sounds = {} W.facing = 0 W.py = 0.31 W.advance(0.5) W.advance(2)
+    local arrivals = 0
+    for _, id in ipairs(W.sounds) do if id == 8960 then arrivals = arrivals + 1 end end
+    check(arrivals == 1, "arrival alert should fire exactly once, fired " .. arrivals)
+    -- options off -> silence
+    RafeeqDB.arrivalAlert, RafeeqDB.driftAlert = false, false
+    ns.Nav:SetPoint(1429, 48, 20, "far north") W.sounds = {} W.facing = math.pi / 2 W.advance(3)
+    check(#W.sounds == 0, "alerts played while disabled")
+    RafeeqDB.arrivalAlert, RafeeqDB.driftAlert = true, true
+    W.speed, W.facing, W.px, W.py = 0, 0, 0.48, 0.42
+    ns.Nav:Clear()
 end)
 
 scenario("suggestions: nearby + available + skip", function()
