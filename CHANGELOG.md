@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.1-beta1 - 2026-11-21
+- Fixed: the arrow could show a stale 'Turn left/right' hint when the quest has no location data or your position is unknown - it now says why there is no direction
+- Fixed: quest pins only appeared on the exact zone map - they now show on any map that contains them (city, zone and continent maps)
+- The arrow names the target's zone when it is not the zone you are in (e.g. 'Hidden Enemies - Durotar')
+
 ## v0.4.0-beta1 - 2026-11-21
 - New: auto-run guidance - the arrow says which way to turn, alerts you on arrival and warns when you run off course (all optional)
 - Fixed: arrival banner could stay on screen after the arrow cleared

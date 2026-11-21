@@ -24,6 +24,12 @@ local W = {
     questChoices = 0, questMoney = 0,
     sold = {}, repaired = nil, accepted = {}, turnedIn = {},
     cvars = { rotateMinimap = "0" },
+    geo = {
+        [1429] = { oN = 0, oW = 0, W = 3000, H = 2000 },          -- Elwynn (same projection as before)
+        [1411] = { oN = 0, oW = -3000, W = 3000, H = 2000 },      -- zone right next to it (east)
+        [1415] = { oN = 3000, oW = 4500, W = 12000, H = 8000 },   -- continent containing both
+        [99999] = { oN = 90000, oW = 90000, W = 1000, H = 800 }, -- far-away map with no quests
+    },
 }
 
 local unpack = unpack or table.unpack
@@ -176,7 +182,7 @@ WorldMapFrame.ScrollContainer.Child._w, WorldMapFrame.ScrollContainer.Child._h =
 WorldMapFrame.ScrollContainer.GetCanvasScale = function() return 1 end
 WorldMapFrame.ScrollContainer.OnCanvasScaleChanged = noop
 WorldMapFrame.OnMapChanged = noop
-WorldMapFrame.GetMapID = function() return W.map end
+WorldMapFrame.GetMapID = function() return W.viewMap or W.map end
 ObjectiveTrackerFrame = newObject("Frame", "ObjectiveTrackerFrame")
 
 ---------------------------------------------------------------------------
@@ -278,9 +284,21 @@ C_GossipInfo = {
 function CreateVector2D(x, y) return { x = x, y = y, GetXY = function(s) return s.x, s.y end } end
 C_Map = {
     GetBestMapForUnit = function() return W.map end,
+    GetMapInfo = function(id) return { mapID = id, name = ({ [1411] = "Durotar", [1429] = "Elwynn Forest" })[id] or ("Map " .. id) } end,
     GetPlayerMapPosition = function() if W.instance then return nil end return CreateVector2D(W.px, W.py) end,
-    -- fake projection: every zone is a 3000x2000 yard square on continent 0
-    GetWorldPosFromMapPos = function(map, v) return 0, CreateVector2D(-v.y * 2000, -v.x * 3000) end,
+    -- fake geography on continent 0: each map is a rectangle (oN/oW = world north/west of its
+    -- top-left corner, W/H = size in yards). Elwynn (1429) and Durotar (1411) sit inside the
+    -- continent map 1415; map 99999 is far from both.
+    GetWorldPosFromMapPos = function(map, v)
+        local m = W.geo[map] or W.geo[1429]
+        return 0, CreateVector2D(m.oN - v.y * m.H, m.oW - v.x * m.W)
+    end,
+    GetMapPosFromWorldPos = function(cont, v, map)
+        local m = W.geo[map]
+        if not m then return nil end
+        local wx, wy = v:GetXY()
+        return map, CreateVector2D((m.oW - wy) / m.W, (m.oN - wx) / m.H)
+    end,
 }
 C_Minimap = { GetViewRadius = function() return 200 end }
 C_SuperTrack = { SetSuperTrackedQuestID = function(id) W.superTracked = id end }

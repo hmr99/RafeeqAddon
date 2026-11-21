@@ -111,7 +111,16 @@ function Pins:RefreshWorldMap()
     local w, h = child:GetWidth(), child:GetHeight()
     local scale = WorldMapFrame.ScrollContainer.GetCanvasScale and WorldMapFrame.ScrollContainer:GetCanvasScale() or 1
     local list = {}
-    for _, d in ipairs(self:Collect()) do if d.map == mapID then list[#list + 1] = d end end
+    -- objective/turn-in points from ANY map that fall inside the map being viewed
+    -- (a Durotar target shows on the Durotar and Kalimdor maps; a city target on its zone map)
+    for _, d in ipairs(self:Collect()) do
+        if #list >= 400 then break end
+        local x, y = Data:ProjectTo(mapID, d.map, d.x, d.y)
+        if x then
+            list[#list + 1] = { map = d.map, x = d.x, y = d.y, px = x, py = y, kind = d.kind,
+                questID = d.questID, text = d.text }
+        end
+    end
     if ns.db.showAvailable then
         for _, q in ipairs(Data:AvailableOnMap(mapID, UnitLevel("player"))) do
             list[#list + 1] = { map = mapID, x = q.point.x, y = q.point.y, kind = "available", questID = q.id,
@@ -128,7 +137,8 @@ function Pins:RefreshWorldMap()
         pin.tex:SetTexture(d.icon or ICON[d.kind] or ICON.kill)
         pin:SetScale(1 / scale)
         pin:ClearAllPoints()
-        pin:SetPoint("CENTER", child, "TOPLEFT", (d.x / 100) * w * scale, -(d.y / 100) * h * scale)
+        local px, py = d.px or d.x, d.py or d.y
+        pin:SetPoint("CENTER", child, "TOPLEFT", (px / 100) * w * scale, -(py / 100) * h * scale)
         pin:SetFrameLevel(child:GetFrameLevel() + 2000)
         pin:Show()
     end

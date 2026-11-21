@@ -73,12 +73,24 @@ function Nav:Recompute()
     local pts, turnIn = self:QuestPoints(target.questID)
     local p = Data:Nearest(pts)
     local qname = Data:QuestName(target.questID) or ("#" .. target.questID)
+    target.noData = (#pts == 0)
     if p then
         target.map, target.x, target.y = p.map, p.x, p.y
         target.label = (turnIn and "> " or "") .. qname
-    else
+        -- say which zone the target is in when it is not the one you are standing in
+        local here = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+        if here and here ~= p.map then
+            local zone = Data:MapName(p.map)
+            if zone then target.label = target.label .. " - " .. zone end
+        end
+    elseif target.noData then
+        -- QuestieDB has no spawn/drop data for this objective: say where the quest is, not a guess
         target.map = nil
-        target.label = qname
+        local zone = Data:QuestZoneName(target.questID)
+        target.label = zone and (qname .. " - " .. zone) or qname
+    else
+        -- points exist but your position is unknown right now (instance, loading): keep the last target
+        target.label = (turnIn and "> " or "") .. qname
     end
 end
 
@@ -191,17 +203,28 @@ function Nav:Tick()
         self:Recompute()
     end
     label:SetText(target.label or "")
-    if not target.map then
+    local function noDirection(textKey)
+        -- never leave a turn hint on screen when there is no direction to give
         arrow:Hide()
-        dist:SetText("?")
+        dist:SetText("--")
+        if textKey then
+            ns.SetUIFont(hint, 13, "OUTLINE")
+            hint:SetText(L(textKey))
+            hint:SetTextColor(0.7, 0.7, 0.7)
+            hint:Show()
+        else
+            hint:Hide()
+        end
+    end
+    if not target.map then
+        noDirection(target.noData and "NAV_NO_DATA" or "NAV_NO_POSITION")
         return
     end
     local _, _, _, pc, pwx, pwy = Data:Player()
     local tc, twx, twy = Data:World(target.map, target.x, target.y)
     local d = Data:Distance(pc, pwx, pwy, tc, twx, twy)
     if not d then
-        arrow:Hide()
-        dist:SetText("--")
+        noDirection(pc and "NAV_OTHER_CONTINENT" or "NAV_NO_POSITION")
         return
     end
     arrow:Show()

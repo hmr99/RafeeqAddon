@@ -73,6 +73,33 @@ function Data:World(uiMapID, x, y)
     return cont, wx, wy
 end
 
+-- Project a point from its own map onto another map (city, zone or continent).
+-- Returns x, y in 0-100 on targetMap, or nil when it falls outside that map.
+local projCache = {}
+function Data:ProjectTo(targetMap, srcMap, x, y)
+    if srcMap == targetMap then return x, y end
+    if not (C_Map and C_Map.GetMapPosFromWorldPos and CreateVector2D) then return nil end
+    local key = targetMap * 1e12 + srcMap * 1e8 + math.floor(x * 100) * 1e4 + math.floor(y * 100)
+    local c = projCache[key]
+    if c then return c[1], c[2] end
+    local cont, wx, wy = self:World(srcMap, x, y)
+    local px, py
+    if cont then
+        local ok, _, pos = pcall(C_Map.GetMapPosFromWorldPos, cont, CreateVector2D(wx, wy), targetMap)
+        if ok and pos then
+            local mx, my = pos:GetXY()
+            if mx and my and mx >= 0 and mx <= 1 and my >= 0 and my <= 1 then px, py = mx * 100, my * 100 end
+        end
+    end
+    projCache[key] = px and { px, py } or { nil, nil }
+    return px, py
+end
+
+function Data:MapName(uiMapID)
+    local info = uiMapID and C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(uiMapID)
+    return info and info.name or nil
+end
+
 function Data:Player()
     if not C_Map then return nil end
     local map = C_Map.GetBestMapForUnit("player")
@@ -131,6 +158,16 @@ end
 function Data:NpcName(id) return self.ready and NpcDB.Get(id, "name") or nil end
 function Data:ItemName(id) return self.ready and ItemDB and ItemDB.Get(id, "name") or nil end
 function Data:ObjectName(id) return self.ready and ObjectDB and ObjectDB.Get(id, "name") or nil end
+-- zone name for a quest (zoneOrSort > 0 is an area ID), for when there is no exact location
+function Data:QuestZoneName(questID)
+    if not self.ready then return nil end
+    local area = QuestDB.Get(questID, "zoneOrSort")
+    if not area or area <= 0 then return nil end
+    local map = self:UiMap(area)
+    local info = map and C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(map)
+    return info and info.name or nil
+end
+
 function Data:QuestName(id) return self.ready and QuestDB.Get(id, "name") or nil end
 
 ---------------------------------------------------------------------------

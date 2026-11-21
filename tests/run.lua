@@ -202,6 +202,35 @@ scenario("arrow: walk onto the point, banner expires, same spot again", function
     W.speed, W.px, W.py = 0, 0.48, 0.42
 end)
 
+scenario("arrow never shows a stale turn hint (no data / no position)", function()
+    if not qdbLoaded then return end
+    local function arrowTexts() return textOf(RafeeqArrow) end
+    W.map, W.px, W.py, W.facing = 1429, 0.48, 0.42, 0
+    -- give the arrow a real direction first, so a stale hint would exist
+    ns.Nav:SetPoint(1429, 56, 42, "east") W.advance(0.2)
+    check(arrowTexts():find(ns.L("NAV_RIGHT"), 1, true), "setup: expected a turn hint")
+    -- 96873 'A Pain in the Neck': QuestieDB has no drop data for its item
+    W.log[#W.log + 1] = { questID = 96873, title = "A Pain in the Neck", level = 8,
+        objectives = { { text = "Luminous Residue: 0/3", finished = false } } }
+    ns.Nav:SetQuest(96873) W.advance(2.5)
+    local t = arrowTexts()
+    for _, k in ipairs({ "NAV_AHEAD", "NAV_LEFT", "NAV_RIGHT", "NAV_BEHIND" }) do
+        check(not t:find(ns.L(k), 1, true), "turn hint shown without a location: " .. k)
+    end
+    check(t:find(ns.L("NAV_NO_DATA"), 1, true), "no-data message missing: " .. t)
+    check(t:find("Durotar", 1, true), "quest zone missing from label: " .. t)
+    -- a quest with data, then lose position (instance): hint must go away, target kept
+    ns.Nav:SetQuest(7) W.advance(2.5)
+    W.instance = true W.advance(2.5)
+    t = arrowTexts()
+    for _, k in ipairs({ "NAV_AHEAD", "NAV_LEFT", "NAV_RIGHT", "NAV_BEHIND" }) do
+        check(not t:find(ns.L(k), 1, true), "turn hint shown with unknown position: " .. k)
+    end
+    W.instance = false W.advance(2.5)
+    check(arrowTexts():find("yd"), "arrow did not recover after leaving the instance")
+    table.remove(W.log) ns.Nav:Clear()
+end)
+
 scenario("suggestions: nearby + available + skip", function()
     if not qdbLoaded then return end
     W.done[783] = true
@@ -233,6 +262,32 @@ scenario("world map + minimap pins", function()
     end
     WorldMapFrame:Hide()
     W.cvars.rotateMinimap = "1" W.advance(0.3) W.cvars.rotateMinimap = "0"
+end)
+
+scenario("pins show on any map that contains the target", function()
+    if not qdbLoaded then return end
+    local child = WorldMapFrame.ScrollContainer.Child
+    local function shownPins()
+        local n = 0
+        for _, f in ipairs(W.frames) do if f._parent == child and f._shown and f.data then n = n + 1 end end
+        return n
+    end
+    ns.Pins:Refresh()
+    W.viewMap = 1415 WorldMapFrame:Show() W.advance(0.3)
+    check(shownPins() > 0, "no pins on the continent map for Elwynn objectives")
+    WorldMapFrame:Hide()
+    W.viewMap = 99999 WorldMapFrame:Show() W.advance(0.3)
+    check(shownPins() == 0, "pins drawn on a map that does not contain them: " .. shownPins())
+    WorldMapFrame:Hide()
+    W.viewMap = nil
+    -- arrow names the target zone when it is not your current zone
+    W.map = 1411 ns.Nav:SetQuest(7) W.advance(2.5)
+    local label = textOf(RafeeqArrow)
+    check(label:find("Elwynn Forest", 1, true), "arrow label does not name the target zone: " .. label)
+    W.map = 1429 W.advance(2.5)
+    label = textOf(RafeeqArrow)
+    check(not label:find(" - Elwynn Forest", 1, true), "zone suffix shown while already in that zone: " .. label)
+    ns.Nav:Clear()
 end)
 
 scenario("quest complete -> ready + turn-in arrow", function()
