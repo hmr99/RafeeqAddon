@@ -4,6 +4,8 @@
 ## Author: Humaid
 ## Version: 0.4.0-beta1
 ## OptionalDeps: QuestieDB
+## X-Curse-Project-ID: 1818922
+## X-Website: https://github.com/hmr99/RafeeqAddon
 ## SavedVariables: RafeeqDB
 ## SavedVariablesPerCharacter: RafeeqCharDB
 

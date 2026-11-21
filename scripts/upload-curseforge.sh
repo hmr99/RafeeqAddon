@@ -4,7 +4,16 @@
 #      ZIP, VERSION, CHANGELOG_FILE
 # Game version IDs: GET https://wow.curseforge.com/api/game/versions with header X-Api-Token.
 set -eu
-: "${CF_API_TOKEN:?missing CF_API_TOKEN secret}" "${CF_PROJECT_ID:?missing CF_PROJECT_ID}" "${ZIP:?}" "${VERSION:?}"
+: "${ZIP:?}" "${VERSION:?}"
+# project ID: repo variable if set, otherwise the TOC's X-Curse-Project-ID line
+if [ -z "${CF_PROJECT_ID:-}" ]; then
+  CF_PROJECT_ID=$(sed -n 's/^## X-Curse-Project-ID: *\([0-9]*\).*/\1/p' Rafeeq/Rafeeq.toc | tr -d '\r')
+fi
+if [ -z "${CF_API_TOKEN:-}" ]; then
+  echo "::warning::CF_API_TOKEN secret is not set - skipping the CurseForge upload (GitHub release still published)."
+  exit 0
+fi
+: "${CF_PROJECT_ID:?no CurseForge project ID (repo variable or TOC)}"
 GAME_VERSIONS="${CF_GAME_VERSIONS:-17053}"
 
 case "$VERSION" in
