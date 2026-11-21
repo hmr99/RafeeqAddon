@@ -22,6 +22,12 @@
 - The arrow turns green when you face your target and red when the target is behind you.
 - Kill, loot, turn-in and new-quest pins on the world map and the minimap.
 
+### Auto-run guidance
+- Turn on auto-run yourself and let the arrow guide you: it shows **Turn left**, **Turn right**, **Straight ahead** or **Target behind you**.
+- A sound and an on-screen alert when you are 30 yards from the target, so you know when to stop running.
+- An alert when you have been running off course for a couple of seconds.
+- Each alert can be turned off in `/rf`. Rafeeq never moves your character - you stay in control, as Blizzard's rules require.
+
 ### Auto macro maker (`/rf macro`)
 - Builds three macros from the spells you know:
   - **RF_ST**: single target.
