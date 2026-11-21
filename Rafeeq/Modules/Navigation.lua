@@ -11,6 +11,8 @@ local atan2, pi = math.atan2 or math.atan, math.pi
 local target -- { mode="point"|"quest", map,x,y,label, questID }
 local frame, arrow, dist, label, hint, banner
 local elapsed = 0
+local arrivedKey      -- point we already announced (reset on every new target)
+local bannerUntil = 0
 
 ---------------------------------------------------------------------------
 -- Which objective points are still needed for a quest
@@ -121,6 +123,10 @@ local function create()
     banner:SetPoint("TOP", UIParent, "TOP", 0, -200)
     banner.text = banner:CreateFontString(nil, "OVERLAY")
     banner.text:SetPoint("CENTER")
+    -- own timer: the arrow frame (and its OnUpdate) may hide while the banner is up
+    banner:SetScript("OnUpdate", function(self)
+        if GetTime() > bannerUntil then self:Hide() end
+    end)
     banner:Hide()
 
     local pt = ns.db.arrowPoint
@@ -143,7 +149,6 @@ local function playAlert(kind)
     pcall(PlaySound, id, "Master")
 end
 
-local bannerUntil = 0
 local function showBanner(key, r, g, b)
     if not banner then return end
     ns.SetUIFont(banner.text, 22, "OUTLINE")
@@ -175,7 +180,6 @@ local function isMoving()
     return IsPlayerMoving and IsPlayerMoving() or false
 end
 
-local arrivedKey      -- point we already announced
 local driftSince, lastDriftAlert = nil, -99
 
 local recomputeTimer = 0
@@ -245,7 +249,6 @@ function Nav:Tick()
     else
         driftSince = nil
     end
-    if banner and banner:IsShown() and now > bannerUntil then banner:Hide() end
 
     if target.mode == "point" and d < 8 then self:Clear() end
 end
