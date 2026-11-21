@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 
-ns.version = "0.3.0"
+ns.version = "0.4.0-beta1"
 
 local defaults = {
     language     = nil, -- chosen on first login (picker), changeable any time
