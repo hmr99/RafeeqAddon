@@ -8,7 +8,7 @@ secret values). Owner: Humaid. Talk to him in Arabic; code, commits and CurseFor
   dependency QuestieDB (`LibQuestieDB`, `QuestDB`, `NpcDB`, `ItemDB`, `ObjectDB`), wrapped in `Core/Data.lua`.
 - `tests/` - client emulator + scripted play session. `python3 tests/run.py --qdb ../QuestieDB`.
 - `scripts/bump.py` - version + changelog. `scripts/upload-curseforge.sh` - used by CI.
-- `.github/workflows/` - `ci.yml` (tests on push), `release.yml` (tag `v*` -> tests -> GitHub release -> CurseForge).
+- `.github/workflows/` - `ci.yml` (tests on push), `release.yml` (version change in `Rafeeq/Rafeeq.toc` on `main`, a `v*` tag, or a release published on GitHub -> tests -> GitHub release -> CurseForge, once per version).
 
 ## Agents
 - `rafeeq-tester` - play-test, fix bugs test-first, propose ideas.
@@ -30,5 +30,8 @@ secret values). Owner: Humaid. Talk to him in Arabic; code, commits and CurseFor
 - Release channel: **beta** (versions `X.Y.Z-betaN`) until Humaid says Rafeeq is out of beta.
 - Baseline: v0.3.0 was uploaded to CurseForge by hand and has no git tag; the first automated
   release must be newer than 0.3.0.
+- **How to release:** `python3 scripts/bump.py <version> "line" ...`, commit, push to `main`. That is all -
+  the workflow creates the tag and the GitHub release and uploads to CurseForge. Do not push tags
+  (the session proxy blocks tag pushes).
 - Never release a build that fails either emulator run. If CI fails after tagging, fix forward with
   the next patch; do not delete published files.

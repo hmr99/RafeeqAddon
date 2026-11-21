@@ -1,8 +1,13 @@
 name: Release
-# Either push a tag like v0.4.0-beta1, or publish a release with that tag from the GitHub
-# Releases page -> tests -> zip -> GitHub release asset -> CurseForge.
+# A release is published when ANY of these happens:
+#   1. the version in Rafeeq/Rafeeq.toc changes on main   (normal path - bump.py + push)
+#   2. a tag vX.Y.Z is pushed
+#   3. a release vX.Y.Z is published from the GitHub Releases page
+# Every path: tests -> zip -> GitHub release (+ zip) -> CurseForge, exactly once per version.
 on:
   push:
+    branches: [main]
+    paths: ["Rafeeq/Rafeeq.toc"]
     tags: ["v*"]
   release:
     types: [published]
@@ -10,48 +15,53 @@ on:
 permissions:
   contents: write
 
-# Publishing from the Releases page can fire both the tag push and the release event.
-# Runs are serialised per tag, and the tag-push run steps aside when a release already exists,
-# so CurseForge gets exactly one upload.
+# One run at a time per version; later runs see the release already exists and step aside.
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: One run per release
+      - uses: actions/checkout@v4
+
+      - name: Which version, and is it already out?
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ] && gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME was published from GitHub - the release-event run handles it."
+          TOC_VERSION=$(sed -n 's/^## Version: *//p' Rafeeq/Rafeeq.toc | tr -d '\r')
+          case "$GITHUB_REF" in
+            refs/tags/*) VERSION="${GITHUB_REF_NAME#v}" ;;
+            *)           VERSION="$TOC_VERSION" ;;
+          esac
+          TAG="v$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          if [ "$TOC_VERSION" != "$VERSION" ]; then
+            echo "::error::TOC version ($TOC_VERSION) does not match $TAG"; exit 1
+          fi
+          # a release published from the GitHub page is handled by its own (release-event) run;
+          # every other path skips when the version is already released
+          if [ "${{ github.event_name }}" != "release" ] && gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "$TAG is already released - nothing to do."
             echo "SKIP=1" >> "$GITHUB_ENV"
           fi
-      - uses: actions/checkout@v4
-        if: env.SKIP != '1'
+
       - uses: actions/setup-python@v5
         if: env.SKIP != '1'
         with:
           python-version: "3.12"
-      - run: pip install lupa
-        if: env.SKIP != '1'
-      - run: git clone --depth 1 https://github.com/Questie/QuestieDB.git ../QuestieDB
-        if: env.SKIP != '1'
+      - if: env.SKIP != '1'
+        run: pip install lupa
+      - if: env.SKIP != '1'
+        run: git clone --depth 1 https://github.com/Questie/QuestieDB.git ../QuestieDB
 
       - name: Tests must pass before anything ships
         if: env.SKIP != '1'
         run: |
           python3 tests/run.py --qdb ../QuestieDB
           python3 tests/run.py
-
-      - name: Check tag matches the TOC version
-        if: env.SKIP != '1'
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          grep -q "## Version: $VERSION" Rafeeq/Rafeeq.toc || { echo "TOC version != tag $VERSION"; exit 1; }
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Package
         if: env.SKIP != '1'
@@ -69,12 +79,12 @@ jobs:
         run: |
           PRE=""
           case "$VERSION" in *alpha*|*beta*) PRE="--prerelease" ;; esac
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            # release was published from the GitHub page: attach the zip and the changelog
-            gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber
-            gh release edit "$GITHUB_REF_NAME" --title "Rafeeq v$VERSION" --notes-file notes.md $PRE
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+            gh release edit "$TAG" --title "Rafeeq v$VERSION" --notes-file notes.md $PRE
           else
-            gh release create "$GITHUB_REF_NAME" "$ZIP" --title "Rafeeq v$VERSION" --notes-file notes.md $PRE
+            # creates the tag on this commit (tag pushes are not needed)
+            gh release create "$TAG" "$ZIP" --target "$GITHUB_SHA" --title "Rafeeq v$VERSION" --notes-file notes.md $PRE
           fi
 
       - name: Upload to CurseForge

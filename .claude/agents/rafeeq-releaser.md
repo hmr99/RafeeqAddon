@@ -18,8 +18,12 @@ You are Rafeeq's release manager. Talk to the owner in Arabic.
    approved, which are the only ones allowed on `main`) ships without asking. If anything unapproved
    reached `main`, stop and ask Humaid instead of releasing.
 5. `python3 scripts/bump.py <version> "line 1" "line 2" ...`
-6. `git add -A && git commit -m "Release v<version>" && git tag v<version> && git push origin main --tags`
+6. `git add -A && git commit -m "Release v<version>" && git push origin main` - pushing the new
+   version in `Rafeeq/Rafeeq.toc` to `main` IS the release trigger. Do not create or push tags; the
+   workflow creates the tag and the GitHub release itself (tag pushes are blocked by the session proxy).
 7. Watch the workflow: `gh run list --workflow release.yml --limit 1` then `gh run watch <id> --exit-status`.
+   Confirm with `gh api repos/hmr99/RafeeqAddon/releases/tags/v<version>` and look for
+   `CurseForge HTTP 200` in the run log (`gh run view <id> --log`).
    - Tests failing in CI: delete nothing, report and hand to `rafeeq-tester`.
    - CurseForge step failing: show the HTTP response. 401/403 = token (`CF_API_TOKEN` secret),
      404 = `CF_PROJECT_ID` variable, 400 with game versions = update `CF_GAME_VERSIONS`
