@@ -176,6 +176,32 @@ scenario("auto-run guidance: turn hints, arrival, drift", function()
     ns.Nav:Clear()
 end)
 
+scenario("arrow: walk onto the point, banner expires, same spot again", function()
+    W.map, W.px, W.py, W.facing, W.speed = 1429, 0.48, 0.42, 0, 7
+    local function arrivals()
+        local n = 0
+        for _, id in ipairs(W.sounds) do if id == 8960 then n = n + 1 end end
+        return n
+    end
+    -- run north to a flag; arrive (~25 yd) and keep running straight onto it
+    W.sounds = {}
+    ns.Nav:SetPoint(1429, 48, 35, "flag") W.advance(0.2)
+    W.py = 0.36 W.advance(0.2)
+    check(arrivals() == 1, "no arrival alert at the flag")
+    check(RafeeqNavBanner:IsShown(), "arrival banner not shown")
+    W.py = 0.35 W.advance(0.2)
+    check(not RafeeqArrow:IsShown(), "arrow did not clear on reaching the point")
+    W.advance(5)
+    check(not RafeeqNavBanner:IsShown(), "arrival banner stuck on screen after the arrow cleared")
+    -- the player sets the same flag again from further away: must announce again
+    W.py = 0.42 W.sounds = {}
+    ns.Nav:SetPoint(1429, 48, 35, "flag") W.advance(0.2)
+    W.py = 0.36 W.advance(0.2)
+    check(arrivals() == 1, "re-targeting the same spot did not announce arrival again")
+    ns.Nav:Clear() W.advance(4)
+    W.speed, W.px, W.py = 0, 0.48, 0.42
+end)
+
 scenario("suggestions: nearby + available + skip", function()
     if not qdbLoaded then return end
     W.done[783] = true
@@ -339,6 +365,12 @@ scenario("long session stress", function()
         if i % 7 == 0 then W.fire("QUEST_LOG_UPDATE") end
         if i % 13 == 0 then WorldMapFrame:Show() elseif i % 13 == 1 then WorldMapFrame:Hide() end
         W.advance(0.5)
+    end
+end)
+
+scenario("leaked globals (end of session)", function()
+    for k in pairs(_G) do
+        if not before[k] and not ALLOWED_GLOBALS[k] then check(false, "unexpected global: " .. tostring(k)) end
     end
 end)
 
