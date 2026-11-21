@@ -22,6 +22,16 @@
 - The arrow turns green when you face your target and red when the target is behind you.
 - Kill, loot, turn-in and new-quest pins on the world map and the minimap.
 
+### Step-by-step card
+- While the arrow follows a quest, a card under it tells you exactly what to do:
+  - **Kill:** the mob.
+  - **Collect:** the item, plus who drops it.
+  - **Use:** the object.
+  - **Turn in to:** the quest giver.
+- It shows a 3D model of the mob or the item's icon, and your live progress (e.g. 2/8).
+- Inside the objective area, the arrow stops steering and tells you that you are there. If the targets are not in sight, they may be inside a nearby cave or building.
+- Available in English and Arabic.
+
 ### Auto-run guidance
 - Turn on auto-run yourself and let the arrow guide you: it shows **Turn left**, **Turn right**, **Straight ahead** or **Target behind you**.
 - A sound and an on-screen alert when you are 30 yards from the target, so you know when to stop running.

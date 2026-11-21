@@ -194,7 +194,7 @@ function Data:QuestObjectives(questID)
     -- [3] items: where they drop
     for _, row in ipairs(obj[3] or {}) do
         local item = row[1]
-        local pts, sources = {}, {}
+        local pts, sources, objSources = {}, {}, {}
         local npcs = ItemDB and ItemDB.Get(item, "npcDrops") or {}
         for i, npc in ipairs(npcs) do
             if i > 12 then break end
@@ -203,9 +203,11 @@ function Data:QuestObjectives(questID)
         end
         for i, o in ipairs(ItemDB and ItemDB.Get(item, "objectDrops") or {}) do
             if i > 6 then break end
+            objSources[#objSources + 1] = o
             for _, p in ipairs(self:ObjectPoints(o, 25)) do pts[#pts + 1] = p end
         end
-        list[#list + 1] = { kind = "loot", id = item, name = self:ItemName(item), points = pts, sources = sources }
+        list[#list + 1] = { kind = "loot", id = item, name = self:ItemName(item), points = pts,
+            sources = sources, objSources = objSources }
     end
     -- [5] kill credit groups
     for _, row in ipairs(obj[5] or {}) do
@@ -221,6 +223,16 @@ function Data:QuestObjectives(questID)
     end
     objCache[questID] = list
     return list
+end
+
+-- who to turn in to (first NPC or object name)
+function Data:FinisherName(questID)
+    if not self.ready then return nil end
+    local fin = QuestDB.Get(questID, "finishedBy") or {}
+    local npc = fin[1] and fin[1][1]
+    if npc then return self:NpcName(npc), npc end
+    local o = fin[2] and fin[2][1]
+    if o then return self:ObjectName(o) end
 end
 
 -- where to turn in

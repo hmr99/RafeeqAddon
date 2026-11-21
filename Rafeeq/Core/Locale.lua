@@ -63,6 +63,20 @@ local strings = {
         NAV_ARRIVED      = "وصلت - وقف الركض",
         NAV_DRIFT        = "انحرفت عن الطريق",
         NAV_NO_DATA      = "ما في موقع دقيق لهذي المهمة",
+        NAV_IN_AREA      = "أنت في منطقة المهمة",
+        NAV_ARRIVED_QUEST = "وصلت منطقة المهمة - شوف التعليمات تحت السهم",
+        GUIDE_KILL       = "اقتل:",
+        GUIDE_COLLECT    = "اجمع:",
+        GUIDE_DROPS      = "يطيح من:",
+        GUIDE_FROM_OBJ   = "تلقاه في:",
+        GUIDE_USE        = "استخدم أو افتح:",
+        GUIDE_TURNIN     = "سلّم المهمة لـ:",
+        GUIDE_GOAL       = "المطلوب:",
+        GUIDE_NO_DATA    = "ما في تفاصيل - اقرأ وصف المهمة في السجل",
+        GUIDE_IN_AREA    = "أنت في المكان - دوّر على الأهداف حولك. إذا ما شفتها، ممكن تكون داخل كهف أو مبنى قريب، دوّر على المدخل",
+        GUIDE_AT_TURNIN  = "أنت عند الشخص - كلّمه وسلّم المهمة",
+        OPT_GUIDE        = "بطاقة التعليمات تحت السهم",
+        OPT_GUIDE_MODELS = "صورة الوحش ثلاثية الأبعاد في البطاقة",
         NAV_NO_POSITION  = "موقعك غير معروف هني",
         NAV_OTHER_CONTINENT = "الهدف في قارة ثانية",
         OPT_TURN_HINTS   = "إرشاد الاتجاه تحت السهم (للأوتو رن)",
@@ -130,6 +144,20 @@ local strings = {
         NAV_ARRIVED      = "Arrived - stop running",
         NAV_DRIFT        = "You are off course",
         NAV_NO_DATA      = "No exact location for this quest",
+        NAV_IN_AREA      = "You are in the quest area",
+        NAV_ARRIVED_QUEST = "Quest area reached - see the steps under the arrow",
+        GUIDE_KILL       = "Kill:",
+        GUIDE_COLLECT    = "Collect:",
+        GUIDE_DROPS      = "Dropped by:",
+        GUIDE_FROM_OBJ   = "Found in:",
+        GUIDE_USE        = "Use or open:",
+        GUIDE_TURNIN     = "Turn in to:",
+        GUIDE_GOAL       = "Objective:",
+        GUIDE_NO_DATA    = "No details - read the quest text in your log",
+        GUIDE_IN_AREA    = "You are there - look for the targets around you. Not in sight? They may be inside a nearby cave or building - look for the entrance",
+        GUIDE_AT_TURNIN  = "You are at the quest giver - talk to turn it in",
+        OPT_GUIDE        = "Step-by-step card under the arrow",
+        OPT_GUIDE_MODELS = "3D model of the target in the card",
         NAV_NO_POSITION  = "Your position is unknown here",
         NAV_OTHER_CONTINENT = "Target is on another continent",
         OPT_TURN_HINTS   = "Direction hints under the arrow (for auto-run)",
@@ -147,6 +175,40 @@ function ns.L(key, ...)
     if select("#", ...) > 0 then s = s:format(...) end
     if lang == "ar" then s = ns.Shaper.Shape(s) end
     return s
+end
+
+-- Unshaped localized string (for code that wraps Arabic itself).
+function ns.Lraw(key, ...)
+    local lang = ns.GetLanguage and ns.GetLanguage() or "en"
+    local s = (strings[lang] and strings[lang][key]) or strings.en[key] or key
+    if select("#", ...) > 0 then s = s:format(...) end
+    return s, lang
+end
+
+-- Set a localized text on a FontString that may need several lines.
+-- WoW wraps left-to-right, which would put the END of an Arabic sentence on the first line,
+-- so Arabic is split into lines here (by measured width) and each line is shaped on its own.
+function ns.SetLText(fs, width, key, ...)
+    local text, lang = ns.Lraw(key, ...)
+    if lang ~= "ar" then
+        fs:SetWordWrap(true)
+        fs:SetText(text)
+        return
+    end
+    fs:SetWordWrap(false)
+    local lines, line = {}, nil
+    for word in text:gmatch("%S+") do
+        local candidate = line and (line .. " " .. word) or word
+        fs:SetText(ns.Shaper.Shape(candidate))
+        if line and fs:GetStringWidth() > width then
+            lines[#lines + 1] = ns.Shaper.Shape(line)
+            line = word
+        else
+            line = candidate
+        end
+    end
+    if line then lines[#lines + 1] = ns.Shaper.Shape(line) end
+    fs:SetText(table.concat(lines, "\n"))
 end
 
 ns.ARABIC_FONT = "Interface\\AddOns\\Rafeeq\\Media\\RafeeqArabic.ttf"

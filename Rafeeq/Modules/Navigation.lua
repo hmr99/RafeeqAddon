@@ -63,10 +63,14 @@ end
 
 function Nav:Clear()
     target = nil
+    lastDistance = nil
     if frame then frame:Hide() end
 end
 
 function Nav:Target() return target end
+
+local lastDistance
+function Nav:Distance() return lastDistance end
 
 function Nav:Recompute()
     if not target or target.mode ~= "quest" then return end
@@ -223,10 +227,13 @@ function Nav:Tick()
     local _, _, _, pc, pwx, pwy = Data:Player()
     local tc, twx, twy = Data:World(target.map, target.x, target.y)
     local d = Data:Distance(pc, pwx, pwy, tc, twx, twy)
+    lastDistance = d
     if not d then
         noDirection(pc and "NAV_OTHER_CONTINENT" or "NAV_NO_POSITION")
         return
     end
+    -- quest objectives are an AREA, not a pin: once inside it, stop steering and say so
+    local inArea = target.mode == "quest" and d <= (ns.db.areaYards or 40)
     arrow:Show()
     -- world X = north, world Y = west; facing is radians CCW from north
     local bearing = atan2(twy - pwy, twx - pwx)
@@ -242,7 +249,12 @@ function Nav:Tick()
     dist:SetText(("%d yd"):format(d))
 
     -- turn hint
-    if rel and ns.db.turnHints then
+    if inArea then
+        ns.SetUIFont(hint, 14, "OUTLINE")
+        hint:SetText(L("NAV_IN_AREA"))
+        hint:SetTextColor(0.4, 1, 0.5)
+        hint:Show()
+    elseif rel and ns.db.turnHints then
         local key, r, g, b = hintKey(rel)
         ns.SetUIFont(hint, 14, "OUTLINE")
         hint:SetText(L(key))
@@ -254,15 +266,18 @@ function Nav:Tick()
 
     -- arrival alert: once per target point
     local key = ("%s:%.1f:%.1f"):format(target.map, target.x, target.y)
-    if ns.db.arrivalAlert and d <= (ns.db.arrivalYards or 30) and arrivedKey ~= key then
+    local arriveAt = target.mode == "quest" and (ns.db.areaYards or 40) or (ns.db.arrivalYards or 30)
+    -- in quest mode the nearest spawn keeps changing inside the area: announce the quest once
+    if target.mode == "quest" then key = "q" .. tostring(target.questID) end
+    if ns.db.arrivalAlert and d <= arriveAt and arrivedKey ~= key then
         arrivedKey = key
         playAlert("arrive")
-        showBanner("NAV_ARRIVED", 0.3, 1, 0.4)
+        showBanner(target.mode == "quest" and "NAV_ARRIVED_QUEST" or "NAV_ARRIVED", 0.3, 1, 0.4)
     end
 
     -- drift alert: running for 2s+ while the target is more than ~60 degrees off
     local now = GetTime()
-    if ns.db.driftAlert and rel and d > (ns.db.arrivalYards or 30) and isMoving() and math.abs(rel) > 1.05 then
+    if ns.db.driftAlert and rel and not inArea and d > (ns.db.arrivalYards or 30) and isMoving() and math.abs(rel) > 1.05 then
         driftSince = driftSince or now
         if now - driftSince > 2 and now - lastDriftAlert > 6 then
             lastDriftAlert = now

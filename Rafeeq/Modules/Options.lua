@@ -31,6 +31,8 @@ local ITEMS = {
     { key = "turnHints",    label = "OPT_TURN_HINTS" },
     { key = "arrivalAlert", label = "OPT_ARRIVAL" },
     { key = "driftAlert",   label = "OPT_DRIFT" },
+    { key = "guideCard",    label = "OPT_GUIDE" },
+    { key = "guideModels",  label = "OPT_GUIDE_MODELS" },
 }
 
 local function layout()

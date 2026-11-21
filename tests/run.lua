@@ -19,7 +19,7 @@ local W = dofile("tests/wow.lua")
 ---------------------------------------------------------------------------
 local ALLOWED_GLOBALS = {
     RafeeqDB = true, RafeeqCharDB = true, SLASH_RAFEEQ1 = true, SLASH_RAFEEQ2 = true,
-    RafeeqTracker = true, RafeeqArrow = true, RafeeqSuggest = true, RafeeqOptions = true, RafeeqMacros = true, RafeeqLanguagePicker = true, RafeeqNavBanner = true,
+    RafeeqTracker = true, RafeeqArrow = true, RafeeqSuggest = true, RafeeqOptions = true, RafeeqMacros = true, RafeeqLanguagePicker = true, RafeeqNavBanner = true, RafeeqGuide = true,
 }
 local before = {}
 for k in pairs(_G) do before[k] = true end
@@ -288,6 +288,86 @@ scenario("pins show on any map that contains the target", function()
     label = textOf(RafeeqArrow)
     check(not label:find(" - Elwynn Forest", 1, true), "zone suffix shown while already in that zone: " .. label)
     ns.Nav:Clear()
+end)
+
+scenario("guide card: what to do, in-area state, turn-in", function()
+    if not qdbLoaded then return end
+    W.map, W.px, W.py, W.facing = 1429, 0.48, 0.42, 0
+    W.log[#W.log + 1] = { questID = 33, title = "Wolves Across the Border", level = 2,
+        objectives = { { text = "Tough Wolf Meat: 2/8", finished = false } } }
+    local function cardText() return RafeeqGuide and RafeeqGuide:IsShown() and textOf(RafeeqGuide) or "" end
+    SlashCmdList.RAFEEQ("en")
+    -- loot quest: collect + dropped by + live progress
+    ns.Nav:SetQuest(33) W.advance(1)
+    local t = cardText()
+    check(t:find("Collect:", 1, true), "card missing 'Collect:' step: " .. t)
+    check(t:find("Tough Wolf Meat", 1, true) and t:find("2/8", 1, true), "card missing item and progress: " .. t)
+    check(t:find("Dropped by:", 1, true), "card missing who drops it: " .. t)
+    -- kill quest
+    ns.Nav:SetQuest(7) W.advance(1)
+    t = cardText()
+    check(t:find("Kill:", 1, true) and t:find("4/10", 1, true), "card missing kill step/progress: " .. t)
+    -- walk into the objective area: arrow stops steering, card says you are there
+    local p = ns.Data:Nearest(ns.Nav:QuestPoints(7))
+    W.px, W.py = p.x / 100 + 0.002, p.y / 100
+    W.advance(2.5)
+    t = cardText()
+    check(t:find("You are there", 1, true), "card has no in-area line: " .. t)
+    local arrow = textOf(RafeeqArrow)
+    check(arrow:find(ns.L("NAV_IN_AREA"), 1, true), "arrow does not say you are in the area: " .. arrow)
+    for _, k in ipairs({ "NAV_LEFT", "NAV_RIGHT", "NAV_BEHIND" }) do
+        check(not arrow:find(ns.L(k), 1, true), "arrow still steering inside the area: " .. k)
+    end
+    -- Arabic: verb lines and the long area line are shaped and wrapped line by line
+    SlashCmdList.RAFEEQ("ar") W.advance(1)
+    t = cardText()
+    check(t:find(ns.Shaper.Shape("اقتل:"), 1, true), "Arabic kill verb missing: " .. t)
+    local areaFs
+    for _, f in ipairs(W.frames) do
+        if f._parent == RafeeqGuide and f._kind == "FontString" and f._shown and f._text:find("\n") then areaFs = f end
+    end
+    check(areaFs, "long Arabic area line was not split into lines")
+    if areaFs then
+        local first = areaFs._text:match("^[^\n]+")
+        check(first == ns.Shaper.Shape(first and "" or "") or first:find(ns.Shaper.Shape("أنت في المكان"), 1, true),
+            "first Arabic line is not the start of the sentence: " .. tostring(first))
+    end
+    -- completed quest: turn in to the NPC
+    W.log[1].complete = true W.fire("QUEST_LOG_UPDATE") W.advance(2.5)
+    t = cardText()
+    check(t:find(ns.Shaper.Shape("سلّم المهمة لـ:"), 1, true), "turn-in step missing: " .. t)
+    W.log[1].complete = false
+    table.remove(W.log)
+    SlashCmdList.RAFEEQ("en") ns.Nav:Clear() W.advance(0.6)
+    check(not RafeeqGuide:IsShown(), "card still visible after clearing the arrow")
+    SlashCmdList.RAFEEQ("ar")
+end)
+
+scenario("pins: overlapping pins merge into one with a count", function()
+    local items = {
+        { kind = "loot", sx = 100, sy = 100, text = "A" }, { kind = "loot", sx = 105, sy = 103, text = "A" },
+        { kind = "kill", sx = 110, sy = 101, text = "B" }, { kind = "loot", sx = 300, sy = 300, text = "C" },
+        { kind = "available", sx = 101, sy = 101, text = "D" },
+    }
+    local out = ns.Pins.Cluster(items, 22)
+    check(#out == 3, "expected 3 clusters (near group, far pin, separate available), got " .. #out)
+    local big
+    for _, d in ipairs(out) do if d.count == 3 then big = d end end
+    check(big and #big.texts == 2, "merged pin should count 3 and list 2 distinct quests")
+    if not qdbLoaded then return end
+    -- on the real map: far fewer pins than raw points, and counts shown
+    ns.Pins:Refresh()
+    W.viewMap = 1415 WorldMapFrame:Show() W.advance(0.3)
+    local shown, counted = 0, 0
+    local child = WorldMapFrame.ScrollContainer.Child
+    for _, f in ipairs(W.frames) do
+        if f._parent == child and f._shown and f.data then
+            shown = shown + 1
+            if (f.data.count or 1) > 1 then counted = counted + 1 end
+        end
+    end
+    check(shown > 0 and counted > 0, ("continent map: %d pins, %d merged"):format(shown, counted))
+    WorldMapFrame:Hide() W.viewMap = nil
 end)
 
 scenario("quest complete -> ready + turn-in arrow", function()

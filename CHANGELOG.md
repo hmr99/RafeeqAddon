@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.0-beta1 - 2026-11-21
+- New: step-by-step card under the arrow - Kill / Collect (and who drops it) / Use / Turn in, with a 3D model of the mob or the item icon and live progress, in English or Arabic
+- New: inside the objective area the arrow stops steering and says you are there (and hints that targets may be inside a cave or building)
+- Map and minimap pins are clearer: coloured rings per objective type, and overlapping pins merge into one with a count
+- Arabic multi-line text now wraps in the right order
+
 ## v0.4.1-beta1 - 2026-11-21
 - Fixed: the arrow could show a stale 'Turn left/right' hint when the quest has no location data or your position is unknown - it now says why there is no direction
 - Fixed: quest pins only appeared on the exact zone map - they now show on any map that contains them (city, zone and continent maps)
