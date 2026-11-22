@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.2-beta1 - 2026-11-22
+- Fixed: after a /reload (or with an old AzerothGPS route), choosing a quest added Rafeeq's stop next to the old one and AzerothGPS's fastest order could send you to the old stop first - the old route is now always cleared first
+
 ## v0.9.1-beta1 - 2026-11-22
 - Clicking a quest in the tracker now chooses it: its card, the arrow, the diamond and the AzerothGPS route all go to that quest; Shift-click only shows its card
 

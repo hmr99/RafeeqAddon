@@ -34,8 +34,11 @@ function GPS:Active()
     return ns.db.gpsBridge and self:Available()
 end
 
-local function clearRoute()
-    if sent and type(SlashCmdList.AZEROTHGPS) == "function" then
+-- force: clear even if we did not send the current route. AzerothGPS keeps its route over a /reload
+-- while we forget what we sent, so before giving it a new stop we always clear: otherwise the old stop
+-- stays and "fastest order" sends the player there first.
+local function clearRoute(force)
+    if (sent or force) and type(SlashCmdList.AZEROTHGPS) == "function" then
         pcall(SlashCmdList.AZEROTHGPS, "clear")
     end
     sent = nil
@@ -63,7 +66,7 @@ function GPS:Sync()
     end
     local way = wayHandler()
     if not way then return end
-    clearRoute()
+    clearRoute(true)
     local title = t.questID and Data:QuestName(t.questID) or t.label
     local ok = pcall(way, ("#%d %.2f %.2f %s"):format(t.map, t.x, t.y, cleanTitle(title)))
     if ok then

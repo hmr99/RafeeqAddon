@@ -493,9 +493,15 @@ scenario("AzerothGPS bridge: road route + its arrow", function()
     SLASH_AZEROTHGPSWAY1 = "/way"
     SlashCmdList.AZEROTHGPSWAY = function(msg) calls[#calls + 1] = "way " .. msg end
     AzerothGPSArrow = CreateFrame("Frame", "AzerothGPSArrow") AzerothGPSArrow:Show()
+    -- AzerothGPS still holds a stop from before a /reload (Rafeeq does not know about it)
+    local agpsStops = { "old stop from last session" }
+    SlashCmdList.AZEROTHGPS = function(msg) calls[#calls + 1] = "agps " .. msg if msg == "clear" then agpsStops = {} end end
+    SlashCmdList.AZEROTHGPSWAY = function(msg) calls[#calls + 1] = "way " .. msg agpsStops[#agpsStops + 1] = msg end
     ns.Nav:SetQuest(7) W.advance(0.6)
-    check(calls[1] and calls[1]:find("^way #1429 %d+%.%d+ %d+%.%d+ Kobold Camp Cleanup$"),
-        "no /way stop sent to AzerothGPS: " .. tostring(calls[1]))
+    check(calls[1] == "agps clear", "first stop sent without clearing AzerothGPS's old route: " .. tostring(calls[1]))
+    check(calls[2] and calls[2]:find("^way #1429 %d+%.%d+ %d+%.%d+ Kobold Camp Cleanup$"),
+        "no /way stop sent to AzerothGPS: " .. tostring(calls[2]))
+    check(#agpsStops == 1, "AzerothGPS route should hold only Rafeeq's stop, holds " .. #agpsStops)
     check(RafeeqArrow._alpha == 0, "Rafeeq arrow still visible while AzerothGPS guides")
     -- small moves of the nearest spawn do not spam new routes
     local n = #calls
