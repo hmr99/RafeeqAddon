@@ -41,13 +41,14 @@
 - Marks are hidden inside dungeons, where the game locks this information for every addon.
 
 ### Step-by-step card
-- While the arrow follows a quest, a card under it tells you exactly what to do:
+- Click a quest in the tracker, or follow it with the arrow, and its card tells you exactly what to do:
   - **Kill:** the mob.
   - **Collect:** the item, plus who drops it.
   - **Use:** the object.
   - **Turn in to:** the quest giver.
 - It shows a 3D model of the mob or the item's icon, and your live progress (e.g. 2/8).
 - Inside the objective area, the arrow stops steering and tells you that you are there. If the targets are not in sight, they may be inside a nearby cave or building.
+- The card is its own window: drag it anywhere, resize it from the corner, close it with X.
 - Available in English and Arabic.
 
 ### Auto-run guidance

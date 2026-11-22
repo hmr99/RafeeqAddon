@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.9.0-beta1 - 2026-11-22
+- The quest card is now its own window: drag it anywhere, resize it from the corner grip, close it with X (position and size are saved)
+- Click a quest in the tracker to open its card; Shift-click starts the arrow and route, Ctrl-click collapses, right-click opens the quest log
+- The options window title shows the Rafeeq version
+
 ## v0.8.1-beta1 - 2026-11-22
 - Fixed: with AzerothGPS routing, Rafeeq's straight-line arrow and drift alert could contradict AzerothGPS's road directions when its arrow window was off - Rafeeq's arrow now steps aside whenever AzerothGPS has the route
 

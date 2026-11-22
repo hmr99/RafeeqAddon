@@ -129,7 +129,15 @@ function Frame:SetPoint(...)
     self._points[#self._points + 1] = a
 end
 function Frame:ClearAllPoints() self._points = {} end
-function Frame:GetPoint() return "TOPRIGHT", UIParent, "TOPRIGHT", -80, -220 end
+function Frame:GetPoint()
+    local p = self._points[#self._points]
+    if p and type(p[2]) ~= "string" then return p[1], p[2], p[3], p[4], p[5] end
+    return "TOPRIGHT", UIParent, "TOPRIGHT", -80, -220
+end
+function Frame:StopMovingOrSizing()
+    -- a drag "moves" the frame: tests set self._dragTo = { x, y } before OnDragStop
+    if self._dragTo then self:ClearAllPoints() self:SetPoint("TOPLEFT", UIParent, "TOPLEFT", self._dragTo[1], self._dragTo[2]) end
+end
 function Frame:GetFrameLevel() return self._level end
 function Frame:SetFrameLevel(l) self._level = l end
 function Frame:GetParent() return self._parent end
@@ -219,6 +227,9 @@ function BreakUpLargeNumbers(n) return tostring(n) end
 function GetCoinTextureString(c) return c .. "c" end
 function InCombatLockdown() return W.combat end
 function IsShiftKeyDown() return W.shift or false end
+function IsControlKeyDown() return W.ctrl or false end
+W.cursor = { 500, 500 }
+function GetCursorPosition() return W.cursor[1], W.cursor[2] end
 function GetCVar(k) return W.cvars[k] end
 function GetPlayerFacing() return W.facing end
 function GetMaxPlayerLevel() return 60 end

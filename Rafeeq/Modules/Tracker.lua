@@ -230,11 +230,22 @@ local function getRow(i)
             elseif C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
                 C_SuperTrack.SetSuperTrackedQuestID(id)
             end
+        elseif IsControlKeyDown and IsControlKeyDown() then
+            ns.char.collapsed[id] = not ns.char.collapsed[id] or nil
+            Tracker:Update()
+        elseif ns.Guide and ns.Data and ns.Data.ready then
+            ns.Guide:Show(id) -- plain click: the quest's step-by-step card
         else
             ns.char.collapsed[id] = not ns.char.collapsed[id] or nil
             Tracker:Update()
         end
     end)
+    r:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(ns.Strings.en.ROW_HELP, 0.85, 0.85, 0.85, true)
+        GameTooltip:Show()
+    end)
+    r:SetScript("OnLeave", function() GameTooltip:Hide() end)
     rows[i] = r
     return r
 end

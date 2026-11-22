@@ -159,6 +159,45 @@ local function create()
     title:SetWordWrap(false)
     areaLine = card:CreateFontString(nil, "OVERLAY")
     areaLine:SetWordWrap(true)
+
+    -- its own window: drag anywhere, X to close, corner grip to resize; position and size are saved
+    card:SetMovable(true)
+    card:EnableMouse(true)
+    card:SetClampedToScreen(true)
+    card:RegisterForDrag("LeftButton")
+    card:SetScript("OnDragStart", function(self) if not ns.db.locked then self:StartMoving() end end)
+    card:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local p, _, rp, x, y = self:GetPoint()
+        ns.db.cardPoint = { p, rp, x, y }
+    end)
+
+    local close = CreateFrame("Button", nil, card, "UIPanelCloseButton")
+    close:SetSize(24, 24)
+    close:SetPoint("TOPRIGHT", 2, 2)
+    close:SetScript("OnClick", function() Guide:Close() end)
+    card.close = close
+
+    local grip = CreateFrame("Button", nil, card)
+    grip:SetSize(16, 16)
+    grip:SetPoint("BOTTOMRIGHT", -1, 1)
+    grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    grip:SetScript("OnMouseDown", function(self)
+        if ns.db.locked then return end
+        local _, cy = GetCursorPosition()
+        self.startY, self.startScale = cy, ns.db.cardScale or 1
+    end)
+    grip:SetScript("OnMouseUp", function(self) self.startY = nil end)
+    grip:SetScript("OnUpdate", function(self)
+        if not self.startY then return end
+        local _, cy = GetCursorPosition()
+        -- drag down = bigger, up = smaller
+        local s = self.startScale + (self.startY - cy) / 400
+        ns.db.cardScale = math.max(0.6, math.min(1.8, math.floor(s * 100 + 0.5) / 100))
+        card:SetScale(ns.db.cardScale)
+    end)
+    card.grip = grip
     card:Hide()
     -- OnUpdate never runs on a hidden frame, so the card is driven by its own (always shown) ticker
     local ticker = CreateFrame("Frame")
@@ -169,15 +208,38 @@ local function create()
 end
 
 local function anchorCard()
+    if card.placed then return end -- only once: after that the player owns its position
+    card.placed = true
     card:ClearAllPoints()
-    local gpsArrow = ns.GPSBridge and ns.GPSBridge:ArrowAnchor()
-    if gpsArrow then
-        card:SetPoint("TOP", gpsArrow, "BOTTOM", 0, -6)
-    elseif RafeeqArrow then
-        card:SetPoint("TOP", RafeeqArrow, "BOTTOM", 0, -6)
+    local pt = ns.db.cardPoint
+    if pt then
+        card:SetPoint(pt[1], UIParent, pt[2], pt[3], pt[4])
     else
-        card:SetPoint("TOP", UIParent, "TOP", 0, -240)
+        card:SetPoint("TOP", UIParent, "TOP", 0, -250)
     end
+end
+
+-- which quest the card shows: the one you clicked in the tracker, else the arrow's quest
+local function cardQuestID()
+    local q = ns.char and ns.char.cardQuest
+    if q and ns.Data.InLog(q) then return q end
+    if ns.char then ns.char.cardQuest = nil end
+    if ns.char and ns.char.cardClosed then return nil end
+    local t = ns.Nav and ns.Nav:Target()
+    if t and t.mode == "quest" then return t.questID end
+end
+
+function Guide:Show(questID)
+    ns.char.cardQuest = questID
+    ns.char.cardClosed = false
+    self:Refresh()
+end
+
+function Guide:Close()
+    ns.char.cardQuest = nil
+    ns.char.cardClosed = true
+    if card then card:Hide() end
+    currentQuest = nil
 end
 
 local function setModel(r, npc)
@@ -192,13 +254,14 @@ end
 
 function Guide:Refresh()
     if not card then return end
-    local t = ns.Nav and ns.Nav:Target()
-    if not ns.db.guideCard or not t or t.mode ~= "quest" or not Data.ready then
+    local qid = Data.ready and ns.db.guideCard and cardQuestID()
+    if not qid then
         card:Hide()
         currentQuest = nil
         return
     end
-    currentQuest = t.questID
+    local t = { questID = qid }
+    currentQuest = qid
     anchorCard()
     local isAr = ns.GetLanguage() == "ar"
     local just = isAr and "RIGHT" or "LEFT"
@@ -206,7 +269,7 @@ function Guide:Refresh()
 
     title:ClearAllPoints()
     title:SetPoint("TOPLEFT", pad, -8)
-    title:SetPoint("TOPRIGHT", -pad, -8)
+    title:SetPoint("TOPRIGHT", -26, -8)
     title:SetJustifyH(just)
     title:SetText(Data:QuestName(t.questID) or "?")
 
@@ -280,7 +343,8 @@ function Guide:Refresh()
     end
 
     -- "you are there" line, driven by the arrow's distance
-    local d = ns.Nav:Distance()
+    local at = ns.Nav:Target()
+    local d = at and at.mode == "quest" and at.questID == qid and ns.Nav:Distance()
     if d and d <= (ns.db.areaYards or 40) then
         fontFor(areaLine, 13)
         ns.SetLText(areaLine, WIDTH - 2 * pad, isComplete(t.questID) and "GUIDE_AT_TURNIN" or "GUIDE_IN_AREA")
@@ -295,8 +359,8 @@ function Guide:Refresh()
         areaLine:Hide()
     end
 
-    card:SetHeight(-y + 4)
-    card:SetScale(ns.db.scale or 1)
+    card:SetHeight(-y + 10)
+    card:SetScale(ns.db.cardScale or 1)
     card:Show()
 end
 

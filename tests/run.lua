@@ -115,9 +115,9 @@ scenario("tracker clicks (collapse, shift = arrow)", function()
     for _, f in ipairs(W.frames) do if f.questID == 7 and f._kind == "Button" then row = f end end
     check(row, "quest row button not found")
     if not row then return end
-    row:Click("LeftButton")
-    check(RafeeqCharDB.collapsed[7], "left click did not collapse quest")
-    row:Click("LeftButton")
+    W.ctrl = true row:Click("LeftButton")
+    check(RafeeqCharDB.collapsed[7], "ctrl-click did not collapse the quest")
+    row:Click("LeftButton") W.ctrl = false
     W.shift = true row:Click("LeftButton") W.shift = false
     if qdbLoaded then
         local t = ns.Nav:Target()
@@ -339,7 +339,9 @@ scenario("guide card: what to do, in-area state, turn-in", function()
     W.log[1].complete = false
     table.remove(W.log)
     SlashCmdList.RAFEEQ("en") ns.Nav:Clear() W.advance(0.6)
-    check(not RafeeqGuide:IsShown(), "card still visible after clearing the arrow")
+    check(RafeeqGuide:IsShown(), "card closed with the arrow - it is its own window now")
+    ns.Guide:Close() W.advance(0.6)
+    check(not RafeeqGuide:IsShown(), "card still visible after closing it")
     SlashCmdList.RAFEEQ("ar")
 end)
 
@@ -495,9 +497,6 @@ scenario("AzerothGPS bridge: road route + its arrow", function()
     check(calls[1] and calls[1]:find("^way #1429 %d+%.%d+ %d+%.%d+ Kobold Camp Cleanup$"),
         "no /way stop sent to AzerothGPS: " .. tostring(calls[1]))
     check(RafeeqArrow._alpha == 0, "Rafeeq arrow still visible while AzerothGPS guides")
-    local anchored
-    for _, p in ipairs(RafeeqGuide._points) do if p[2] == AzerothGPSArrow then anchored = true end end
-    check(anchored, "card not moved under AzerothGPS's arrow")
     -- small moves of the nearest spawn do not spam new routes
     local n = #calls
     W.px = W.px + 0.002 W.advance(2.6)
@@ -537,6 +536,52 @@ scenario("AzerothGPS bridge: road route + its arrow", function()
     ns.Nav:Clear()
     AzerothGPS, SlashCmdList.AZEROTHGPS, SLASH_AZEROTHGPSWAY1, SlashCmdList.AZEROTHGPSWAY = nil, nil, nil, nil
     AzerothGPSArrow = nil
+end)
+
+scenario("quest card window: click a quest, move, resize, close", function()
+    if not qdbLoaded then return end
+    ns.Guide:Close() ns.Nav:Clear() W.advance(0.6)
+    W.log = {
+        { questID = 7, title = "Kobold Camp Cleanup", level = 2, objectives = { { text = "Kobold Vermin slain: 4/10", finished = false } } },
+        { questID = 33, title = "Wolves Across the Border", level = 2, objectives = { { text = "Tough Wolf Meat: 2/8", finished = false } } },
+    }
+    W.fire("QUEST_LOG_UPDATE") W.advance(0.6)
+    local function row(id)
+        for _, f in ipairs(W.frames) do if f.questID == id and f._kind == "Button" and f._shown then return f end end
+    end
+    -- plain click on a quest in the tracker opens its card (no arrow needed)
+    row(33):Click("LeftButton") W.advance(0.6)
+    check(RafeeqGuide:IsShown() and textOf(RafeeqGuide):find("Wolves Across the Border", 1, true), "click did not open the quest's card")
+    check(ns.Nav:Target() == nil, "plain click should not start the arrow")
+    -- another quest replaces it
+    row(7):Click("LeftButton") W.advance(0.6)
+    local t = textOf(RafeeqGuide)
+    check(t:find("Kobold Camp Cleanup", 1, true) and not t:find("Wolves Across", 1, true), "card did not switch quests")
+    -- drag: position is saved
+    RafeeqGuide._dragTo = { 300, -150 }
+    RafeeqGuide:GetScript("OnDragStart")(RafeeqGuide)
+    RafeeqGuide:GetScript("OnDragStop")(RafeeqGuide)
+    check(RafeeqDB.cardPoint and RafeeqDB.cardPoint[3] == 300 and RafeeqDB.cardPoint[4] == -150, "card position not saved")
+    -- corner grip: drag down = bigger
+    local grip = RafeeqGuide.grip
+    W.cursor = { 500, 500 } grip:GetScript("OnMouseDown")(grip)
+    W.cursor = { 500, 380 } grip:GetScript("OnUpdate")(grip, 0.1)
+    grip:GetScript("OnMouseUp")(grip)
+    check((RafeeqDB.cardScale or 1) > 1.2 and RafeeqGuide._scale == RafeeqDB.cardScale, "grip did not enlarge the card: " .. tostring(RafeeqDB.cardScale))
+    W.cursor = { 500, 500 } grip:GetScript("OnMouseDown")(grip)
+    W.cursor = { 500, 2000 } grip:GetScript("OnUpdate")(grip, 0.1)
+    grip:GetScript("OnMouseUp")(grip)
+    check(RafeeqDB.cardScale == 0.6, "card scale not clamped at 0.6: " .. tostring(RafeeqDB.cardScale))
+    -- X closes it and it stays closed until you ask again
+    RafeeqGuide.close:Click() W.advance(1.1)
+    check(not RafeeqGuide:IsShown(), "X did not close the card")
+    -- shift-click (arrow) opens it again for that quest
+    W.shift = true row(33):Click("LeftButton") W.shift = false W.advance(0.6)
+    check(RafeeqGuide:IsShown() and textOf(RafeeqGuide):find("Wolves Across the Border", 1, true), "arrow did not reopen the card")
+    -- a quest that leaves the log closes its card
+    table.remove(W.log, 2) W.fire("QUEST_LOG_UPDATE") ns.Nav:Clear() W.advance(1.1)
+    check(not RafeeqGuide:IsShown(), "card stayed for a quest no longer in the log")
+    RafeeqDB.cardScale = 1 ns.Guide:Close()
 end)
 
 scenario("quest complete -> ready + turn-in arrow", function()

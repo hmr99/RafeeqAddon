@@ -44,7 +44,7 @@ local ITEMS = {
 local function layout()
     local isAr = ns.GetLanguage() == "ar"
     ns.SetUIFont(win.title, 16, "OUTLINE")
-    win.title:SetText(L("OPT_TITLE"))
+    win.title:SetText(L("OPT_TITLE", ns.version or "?"))
 
     -- language tabs: the active one is lit
     for _, tab in ipairs(win.langTabs) do

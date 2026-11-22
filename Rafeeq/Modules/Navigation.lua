@@ -104,6 +104,7 @@ end
 function Nav:SetQuest(questID)
     arrivedKey = nil
     target = { mode = "quest", questID = questID }
+    if ns.char then ns.char.cardQuest, ns.char.cardClosed = questID, false end
     self:Recompute()
     syncWaypoint()
     syncGPS()
