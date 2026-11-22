@@ -48,9 +48,50 @@ function Nav:QuestPoints(questID)
 end
 
 ---------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- In-world marker: Blizzard's diamond (user waypoint + super-track) follows the arrow's target.
+-- Needs the CVar showInGameNavigation; we turn it on while the option is enabled.
+---------------------------------------------------------------------------
+local ourWaypoint      -- "map:x:y" of the waypoint we placed, nil when none
+local function waypointAPI()
+    return C_Map and C_Map.SetUserWaypoint and C_Map.ClearUserWaypoint and UiMapPoint
+        and UiMapPoint.CreateFromCoordinates
+end
+
+local function clearWaypoint()
+    if ourWaypoint and waypointAPI() then pcall(C_Map.ClearUserWaypoint) end
+    ourWaypoint = nil
+end
+
+local function syncWaypoint()
+    if not ns.db.worldMarker or not waypointAPI() then
+        clearWaypoint()
+        return
+    end
+    if not target or not target.map then return end -- keep the last marker while we have no new spot
+    local key = ("%d:%.1f:%.1f"):format(target.map, target.x, target.y)
+    if key == ourWaypoint then return end
+    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(target.map) then return end
+    local ok = pcall(function()
+        local point = UiMapPoint.CreateFromCoordinates(target.map, target.x / 100, target.y / 100)
+        C_Map.SetUserWaypoint(point)
+        if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+            C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+        end
+    end)
+    if ok then ourWaypoint = key end
+end
+Nav.SyncWaypoint = syncWaypoint
+
+function Nav:ApplyWorldMarkerSetting()
+    if ns.db.worldMarker and SetCVar then pcall(SetCVar, "showInGameNavigation", "1") end
+    if ns.db.worldMarker then syncWaypoint() else clearWaypoint() end
+end
+
 function Nav:SetPoint(map, x, y, text)
     arrivedKey = nil
     target = { mode = "point", map = map, x = x, y = y, label = text }
+    syncWaypoint()
     self:Show()
 end
 
@@ -58,12 +99,14 @@ function Nav:SetQuest(questID)
     arrivedKey = nil
     target = { mode = "quest", questID = questID }
     self:Recompute()
+    syncWaypoint()
     self:Show()
 end
 
 function Nav:Clear()
     target = nil
     lastDistance = nil
+    clearWaypoint()
     if frame then frame:Hide() end
 end
 
@@ -205,6 +248,7 @@ function Nav:Tick()
     if target.mode == "quest" and recomputeTimer > 2 then
         recomputeTimer = 0
         self:Recompute()
+        syncWaypoint() -- the nearest objective changed -> move the diamond with it
     end
     label:SetText(target.label or "")
     local function noDirection(textKey)
@@ -296,7 +340,10 @@ function Nav:Show()
     frame:Show()
 end
 
+function Nav:OnRefresh() self:ApplyWorldMarkerSetting() end
+
 function Nav:OnInit()
+    ns:On("PLAYER_LOGIN", function() Nav:ApplyWorldMarkerSetting() end)
     -- quest finished or turned in -> move on
     ns:On("QUEST_TURNED_IN", function(_, questID)
         if target and target.mode == "quest" and target.questID == questID then Nav:Clear() end

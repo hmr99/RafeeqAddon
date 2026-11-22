@@ -301,7 +301,20 @@ C_Map = {
     end,
 }
 C_Minimap = { GetViewRadius = function() return 200 end }
-C_SuperTrack = { SetSuperTrackedQuestID = function(id) W.superTracked = id end }
+-- user waypoint + super-track (the in-world diamond)
+UiMapPoint = { CreateFromCoordinates = function(map, x, y)
+    if type(map) ~= "number" or x < 0 or x > 1 or y < 0 or y > 1 then error("UiMapPoint: bad coordinates", 2) end
+    return { uiMapID = map, position = CreateVector2D(x, y) }
+end }
+C_Map.SetUserWaypoint = function(p) W.waypoint = p end
+C_Map.ClearUserWaypoint = function() W.waypoint = nil end
+C_Map.HasUserWaypoint = function() return W.waypoint ~= nil end
+C_Map.CanSetUserWaypointOnMap = function(map) return map ~= 99999 end
+function SetCVar(k, v) W.cvars[k] = tostring(v) end
+C_SuperTrack = {
+    SetSuperTrackedQuestID = function(id) W.superTracked = id end,
+    SetSuperTrackedUserWaypoint = function(on) W.superTrackedWaypoint = on end,
+}
 
 -- containers / merchant
 C_Container = {

@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 
-ns.version = "0.5.0-beta1"
+ns.version = "0.6.0-beta1"
 
 local defaults = {
     language     = nil, -- chosen on first login (picker), changeable any time
@@ -29,6 +29,7 @@ local defaults = {
     areaYards    = 40,
     guideCard    = true,
     guideModels  = true,
+    worldMarker  = true,
     point        = nil, -- { point, relPoint, x, y }
 }
 

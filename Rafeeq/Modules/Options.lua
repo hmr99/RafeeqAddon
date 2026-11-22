@@ -33,6 +33,7 @@ local ITEMS = {
     { key = "driftAlert",   label = "OPT_DRIFT" },
     { key = "guideCard",    label = "OPT_GUIDE" },
     { key = "guideModels",  label = "OPT_GUIDE_MODELS" },
+    { key = "worldMarker",  label = "OPT_WORLD_MARKER" },
 }
 
 local function layout()

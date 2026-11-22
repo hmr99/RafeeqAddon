@@ -370,6 +370,39 @@ scenario("pins: overlapping pins merge into one with a count", function()
     WorldMapFrame:Hide() W.viewMap = nil
 end)
 
+scenario("in-world diamond follows the arrow target", function()
+    if not qdbLoaded then return end
+    W.map, W.px, W.py = 1429, 0.48, 0.42
+    RafeeqDB.worldMarker = true
+    ns.Nav:ApplyWorldMarkerSetting()
+    check(W.cvars.showInGameNavigation == "1", "showInGameNavigation CVar not enabled")
+    local function wp() return W.waypoint and ("%d:%.3f:%.3f"):format(W.waypoint.uiMapID, W.waypoint.position.x, W.waypoint.position.y) end
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    local t = ns.Nav:Target()
+    check(W.waypoint and W.waypoint.uiMapID == t.map
+        and math.abs(W.waypoint.position.x - t.x / 100) < 1e-6 and math.abs(W.waypoint.position.y - t.y / 100) < 1e-6,
+        "diamond not on the arrow target")
+    check(W.superTrackedWaypoint == true, "waypoint not super-tracked (no diamond)")
+    local first = wp()
+    -- switch the tracked quest -> the diamond moves
+    ns.Nav:SetQuest(33) W.advance(0.3)
+    check(wp() and wp() ~= first, "diamond did not move when tracking another quest")
+    -- walk somewhere else: nearest objective changes -> diamond follows (within the 2 s recompute)
+    local before = wp()
+    W.px, W.py = 0.30, 0.70 W.advance(2.6)
+    local t2 = ns.Nav:Target()
+    check(W.waypoint and math.abs(W.waypoint.position.x - t2.x / 100) < 1e-6, "diamond not updated to the new nearest target")
+    -- clearing the arrow removes our diamond
+    ns.Nav:Clear()
+    check(W.waypoint == nil, "diamond left behind after clearing the arrow")
+    -- option off: no diamond at all
+    RafeeqDB.worldMarker = false ns.Nav:ApplyWorldMarkerSetting()
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(W.waypoint == nil, "diamond placed while the option is off")
+    ns.Nav:Clear() RafeeqDB.worldMarker = true
+    W.px, W.py = 0.48, 0.42
+end)
+
 scenario("quest complete -> ready + turn-in arrow", function()
     W.log[1].complete = true
     W.log[1].objectives[1].finished = true

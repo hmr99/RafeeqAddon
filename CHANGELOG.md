@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.6.0-beta1 - 2026-11-22
+- New: Blizzard's in-world diamond marker now sits on the arrow's target and moves with it - track another quest, or reach a closer objective, and the diamond follows (option: In-world diamond marker; turns on showInGameNavigation for you)
+
 ## v0.5.0-beta1 - 2026-11-21
 - New: step-by-step card under the arrow - Kill / Collect (and who drops it) / Use / Turn in, with a 3D model of the mob or the item icon and live progress, in English or Arabic
 - New: inside the objective area the arrow stops steering and says you are there (and hints that targets may be inside a cave or building)
