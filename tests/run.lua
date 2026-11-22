@@ -484,6 +484,63 @@ scenario("quest complete -> ready + turn-in arrow", function()
     check(textOf(RafeeqTracker) ~= "", "tracker broke on completion")
 end)
 
+scenario("nameplate marks: turn-in NPC, quest givers, language switch", function()
+    if not qdbLoaded then return end
+    W.inInstance = false
+    local function overlay(unit)
+        local p = W.plates[unit] and W.plates[unit].frame
+        if not p then return nil end
+        for _, f in ipairs(W.frames) do
+            if f._parent == p and f._shown and f.icon then return f end
+        end
+    end
+    -- quest 7 is complete in the log: its finisher gets the turn-in mark, with no stale progress
+    local finisher = ns.Data:FinisherName(7)
+    check(finisher, "quest 7 has no finisher in QuestieDB")
+    local giverName, giverQuest
+    for _, q in ipairs(ns.Data:AvailableOnMap(W.map, W.level)) do
+        local n = q.point and q.point.npc and ns.Data:NpcName(q.point.npc)
+        if n and n ~= finisher then giverName, giverQuest = n, q.id break end
+    end
+    W.plates = {
+        nameplate1 = { name = finisher or "?" },
+        nameplate2 = { name = giverName or "?" },
+        nameplate3 = { name = "Kobold Vermin" },
+    }
+    W.fire("QUEST_LOG_UPDATE")
+    for i = 1, 3 do W.fire("NAME_PLATE_UNIT_ADDED", "nameplate" .. i) end
+    W.advance(1.1)
+    local o1, o2, o3 = overlay("nameplate1"), overlay("nameplate2"), overlay("nameplate3")
+    check(o1 and o1.icon._tex:find("ActiveQuestIcon"), "turn-in NPC (" .. tostring(finisher) .. ") has no turn-in mark")
+    check(o1 and (o1.text._text or "") == "", "turn-in mark shows progress text: " .. tostring(o1 and o1.text._text))
+    check(o3 == nil, "mob of a completed quest still marked")
+    if giverName then
+        check(o2 and o2.icon._tex:find("AvailableQuestIcon"), "quest giver (" .. giverName .. ") has no '!' mark")
+        -- skipping the quest takes the mark away
+        RafeeqCharDB.skipped = RafeeqCharDB.skipped or {}
+        RafeeqCharDB.skipped[giverQuest] = true
+        W.fire("QUEST_LOG_UPDATE") W.advance(1.1)
+        local still = false
+        for _, q in ipairs(ns.Data:AvailableOnMap(W.map, W.level)) do
+            if q.point and q.point.npc and ns.Data:NpcName(q.point.npc) == giverName then still = true end
+        end
+        if not still then check(overlay("nameplate2") == nil, "giver still marked after skipping its quest") end
+        RafeeqCharDB.skipped[giverQuest] = nil
+        -- option off: no giver marks
+        RafeeqDB.showAvailable = false W.fire("QUEST_LOG_UPDATE") W.advance(1.1)
+        check(overlay("nameplate2") == nil, "giver marked with 'show available quests' off")
+        RafeeqDB.showAvailable = true
+    end
+    -- language switch with plates up keeps the marks and does not error
+    SlashCmdList.RAFEEQ("en") W.advance(1.1)
+    check(overlay("nameplate1"), "turn-in mark lost after switching to English")
+    SlashCmdList.RAFEEQ("ar") W.advance(1.1)
+    check(overlay("nameplate1"), "turn-in mark lost after switching to Arabic")
+    W.plates = {}
+    for i = 1, 3 do W.fire("NAME_PLATE_UNIT_REMOVED", "nameplate" .. i) end
+    W.advance(0.6)
+end)
+
 scenario("automation: gossip / accept / turn-in rules", function()
     W.gossip = { active = { { questID = 7, isComplete = true } }, available = { { questID = 60, isTrivial = false } } }
     W.fire("GOSSIP_SHOW")
