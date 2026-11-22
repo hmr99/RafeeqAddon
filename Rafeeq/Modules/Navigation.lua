@@ -252,9 +252,11 @@ local driftSince, lastDriftAlert = nil, -99
 local recomputeTimer = 0
 function Nav:Tick()
     if not target then frame:Hide() return end
-    local gpsArrow = ns.GPSBridge and ns.GPSBridge:ArrowAnchor()
-    frame:SetAlpha(gpsArrow and 0 or 1)
-    frame:EnableMouse(not gpsArrow)
+    -- while AzerothGPS routes along the roads, our straight-line arrow would contradict it: hide it
+    -- (the logic keeps running for the card, the diamond and the arrival alert)
+    local guiding = ns.GPSBridge and ns.GPSBridge:Guiding()
+    frame:SetAlpha(guiding and 0 or 1)
+    frame:EnableMouse(not guiding)
     recomputeTimer = recomputeTimer + 0.05
     if target.mode == "quest" and recomputeTimer > 2 then
         recomputeTimer = 0
@@ -333,7 +335,7 @@ function Nav:Tick()
 
     -- drift alert: running for 2s+ while the target is more than ~60 degrees off
     local now = GetTime()
-    if ns.db.driftAlert and rel and not inArea and d > (ns.db.arrivalYards or 30) and isMoving() and math.abs(rel) > 1.05 then
+    if ns.db.driftAlert and not guiding and rel and not inArea and d > (ns.db.arrivalYards or 30) and isMoving() and math.abs(rel) > 1.05 then
         driftSince = driftSince or now
         if now - driftSince > 2 and now - lastDriftAlert > 6 then
             lastDriftAlert = now

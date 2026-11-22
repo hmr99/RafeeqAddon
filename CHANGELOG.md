@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.8.1-beta1 - 2026-11-22
+- Fixed: with AzerothGPS routing, Rafeeq's straight-line arrow and drift alert could contradict AzerothGPS's road directions when its arrow window was off - Rafeeq's arrow now steps aside whenever AzerothGPS has the route
+
 ## v0.8.0-beta1 - 2026-11-22
 - New: road routes with AzerothGPS (optional) - every Rafeeq target becomes an AzerothGPS stop, so you get a route that follows the roads and its turn-by-turn arrow; Rafeeq's arrow steps aside and the step-by-step card moves under AzerothGPS's arrow (option: Road route via AzerothGPS)
 

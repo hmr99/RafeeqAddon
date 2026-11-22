@@ -75,7 +75,13 @@ function GPS:OnTargetCleared()
     if sent then clearRoute() end
 end
 
--- Rafeeq's arrow hides while AzerothGPS guides (its arrow follows the road); the card moves under it.
+-- AzerothGPS has a route from us: it is the one giving directions now (its arrow, its directions
+-- text or just the line on its map). Rafeeq's straight-line arrow must not contradict it.
+function GPS:Guiding()
+    return self:Active() and sent ~= nil
+end
+
+-- the card moves under AzerothGPS's arrow when that window is shown
 function GPS:ArrowAnchor()
     if self:Active() and sent and _G.AzerothGPSArrow and _G.AzerothGPSArrow:IsShown() then
         return _G.AzerothGPSArrow

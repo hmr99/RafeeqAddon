@@ -520,7 +520,23 @@ scenario("AzerothGPS bridge: road route + its arrow", function()
     check(RafeeqArrow._alpha == 1, "Rafeeq arrow not back with the bridge off")
     ns.Nav:Clear() RafeeqDB.gpsBridge = true
     AzerothGPS, SlashCmdList.AZEROTHGPS, SLASH_AZEROTHGPSWAY1, SlashCmdList.AZEROTHGPSWAY = nil, nil, nil, nil
-    AzerothGPSArrow:Hide() AzerothGPSArrow = nil
+    -- AzerothGPS with its arrow window OFF (directions text only): Rafeeq's straight-line arrow must still
+    -- step aside, and no drift alert may contradict the road route
+    AzerothGPS = { version = 21 }
+    SlashCmdList.AZEROTHGPS = function(msg) calls[#calls + 1] = "agps " .. msg end
+    SLASH_AZEROTHGPSWAY1 = "/way"
+    SlashCmdList.AZEROTHGPSWAY = function(msg) calls[#calls + 1] = "way " .. msg end
+    AzerothGPSArrow:Hide()
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(RafeeqArrow._alpha == 0, "Rafeeq arrow visible next to AzerothGPS's directions (no GPS arrow window)")
+    W.sounds = {} W.speed = 7 W.facing = math.pi W.advance(3.5)
+    local drift = 0
+    for _, id in ipairs(W.sounds) do if id == 846 then drift = drift + 1 end end
+    check(drift == 0, "drift alert fired while AzerothGPS routes along the roads")
+    W.speed = 0 W.facing = 0
+    ns.Nav:Clear()
+    AzerothGPS, SlashCmdList.AZEROTHGPS, SLASH_AZEROTHGPSWAY1, SlashCmdList.AZEROTHGPSWAY = nil, nil, nil, nil
+    AzerothGPSArrow = nil
 end)
 
 scenario("quest complete -> ready + turn-in arrow", function()
