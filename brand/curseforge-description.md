@@ -23,6 +23,17 @@
 - Blizzard's in-world diamond marker sits on the same target and moves with it when you track another quest or a closer objective. Rafeeq turns `showInGameNavigation` on for you.
 - Kill, loot, turn-in and new-quest pins on the world map and the minimap.
 
+### Quest marks on mobs and NPCs
+- **Mobs you must kill:** a skull with your progress (4/10).
+- **Mobs that drop an item you need:** a bag.
+- **Quest givers:** "!". **Turn-ins:** "?".
+- An optional glow around them. In `/rf` you choose:
+  - **Style:** soft, ring or pulse.
+  - **Colour:** gold, red, green, blue or purple.
+  - **Strength:** 25% to 100%.
+- Rafeeq turns on the nameplates it needs.
+- Marks are hidden inside dungeons, where the game locks this information for every addon.
+
 ### Step-by-step card
 - While the arrow follows a quest, a card under it tells you exactly what to do:
   - **Kill:** the mob.

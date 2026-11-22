@@ -403,6 +403,80 @@ scenario("in-world diamond follows the arrow target", function()
     W.px, W.py = 0.48, 0.42
 end)
 
+scenario("nameplate marks: quest mobs, drop sources, glow options", function()
+    check(W.cvars.nameplateShowEnemies == "1" and W.cvars.nameplateShowFriendlyNPCs == "1"
+        and W.cvars.nameplateMaxDistance == "41", "nameplate CVars not applied at login")
+    if not qdbLoaded then return end
+    W.inInstance = false
+    W.log = {
+        { questID = 7, title = "Kobold Camp Cleanup", level = 2, objectives = { { text = "Kobold Vermin slain: 4/10", finished = false } } },
+        { questID = 33, title = "Wolves Across the Border", level = 2, objectives = { { text = "Tough Wolf Meat: 2/8", finished = false } } },
+    }
+    W.fire("QUEST_LOG_UPDATE")
+    local wolfDrop
+    for _, o in ipairs(ns.Data:QuestObjectives(33)) do
+        if o.kind == "loot" and o.sources and o.sources[1] then wolfDrop = ns.Data:NpcName(o.sources[1]) end
+    end
+    local function overlay(unit)
+        local p = W.plates[unit] and W.plates[unit].frame
+        if not p then return nil end
+        for _, f in ipairs(W.frames) do
+            if f._parent == p and f._shown and f.icon then return f end
+        end
+    end
+    W.plates.nameplate1 = { name = "Kobold Vermin" }
+    W.plates.nameplate2 = { name = wolfDrop or "?" }
+    W.plates.nameplate3 = { name = "Stormwind City Guard" }
+    for i = 1, 3 do W.fire("NAME_PLATE_UNIT_ADDED", "nameplate" .. i) end
+    W.advance(1.1)
+    local o1, o2, o3 = overlay("nameplate1"), overlay("nameplate2"), overlay("nameplate3")
+    check(o1 and o1.icon._tex:find("RaidTargetingIcon_8"), "kill target has no skull mark")
+    check(o1 and o1.text._text == "4/10", "kill mark without progress: " .. tostring(o1 and o1.text._text))
+    check(wolfDrop and o2 and o2.icon._tex:find("Bag"), "drop source (" .. tostring(wolfDrop) .. ") has no loot mark")
+    check(o3 == nil, "unrelated NPC got a mark")
+    check(o1 and o1.glow._shown, "no glow on the quest mob")
+    -- combat: names turn secret; existing marks stay, new plates are skipped, nothing errors
+    W.combat = true
+    W.plates.nameplate1.secret = true
+    W.plates.nameplate4 = { name = "Kobold Vermin", secret = true }
+    W.fire("NAME_PLATE_UNIT_ADDED", "nameplate4")
+    W.advance(1.1)
+    check(overlay("nameplate1"), "mark lost when the name became secret in combat")
+    check(overlay("nameplate4") == nil, "marked a plate whose name is secret")
+    W.combat = false W.plates.nameplate1.secret = false W.plates.nameplate4 = nil
+    -- objective finished -> mark goes away
+    W.log[1].objectives[1] = { text = "Kobold Vermin slain: 10/10", finished = true }
+    W.fire("QUEST_LOG_UPDATE") W.advance(1.1)
+    check(overlay("nameplate1") == nil, "mark stayed after the objective was finished")
+    -- nameplate removed -> overlay released
+    W.plates.nameplate2 = nil W.fire("NAME_PLATE_UNIT_REMOVED", "nameplate2") W.advance(0.6)
+    -- instances: everything hidden
+    W.log[1].objectives[1] = { text = "Kobold Vermin slain: 4/10", finished = false }
+    W.fire("QUEST_LOG_UPDATE") W.advance(1.1)
+    check(overlay("nameplate1"), "mark not restored")
+    W.inInstance = true W.advance(1.1)
+    check(overlay("nameplate1") == nil, "marks shown inside an instance")
+    W.inInstance = false W.advance(1.1)
+    -- glow options from the options window
+    SlashCmdList.RAFEEQ("")
+    local btns = RafeeqOptions.glowBtns
+    btns[1]:Click() check(RafeeqDB.plateGlowStyle == "ring", "style button did not cycle")
+    btns[2]:Click() check(RafeeqDB.plateGlowColor == "red", "colour button did not cycle")
+    btns[3]:Click() check(RafeeqDB.plateGlowStrength == 0.85, "strength button did not cycle: " .. tostring(RafeeqDB.plateGlowStrength))
+    btns[1]:Click() check(RafeeqDB.plateGlowStyle == "pulse", "style did not reach pulse")
+    W.advance(1.1)
+    local a1 = overlay("nameplate1") and overlay("nameplate1").glow._alpha
+    W.advance(0.3)
+    local a2 = overlay("nameplate1") and overlay("nameplate1").glow._alpha
+    check(a1 and a2 and a1 ~= a2, "pulse glow does not animate")
+    RafeeqDB.plateMarks = false ns:Refresh() W.advance(0.6)
+    check(overlay("nameplate1") == nil, "marks shown with the option off")
+    RafeeqDB.plateMarks = true RafeeqDB.plateGlowStyle = "soft" RafeeqDB.plateGlowColor = "gold" RafeeqDB.plateGlowStrength = 0.7
+    SlashCmdList.RAFEEQ("")
+    W.plates = {}
+    W.advance(0.6)
+end)
+
 scenario("quest complete -> ready + turn-in arrow", function()
     W.log[1].complete = true
     W.log[1].objectives[1].finished = true

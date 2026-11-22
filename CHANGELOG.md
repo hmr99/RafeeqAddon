@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.0-beta1 - 2026-11-22
+- New: quest marks on nameplates - skull with progress on mobs you must kill, a bag on mobs that drop what you need, ! and ? on quest givers and turn-ins
+- New: optional glow on quest mobs - choose the style (soft, ring, pulse), colour and strength in /rf
+- Rafeeq turns on enemy and friendly NPC nameplates and sets nameplate range to 41 yards (can be turned off)
+- Options window now uses two columns
+
 ## v0.6.1-beta1 - 2026-11-22
 - New: Blizzard's in-world diamond marker sits on the arrow's target and moves with it when you track another quest or reach a closer objective (option: In-world diamond marker - it turns on showInGameNavigation for you)
 - Fixed: release notes containing a semicolon could not be uploaded to CurseForge (v0.6.0-beta1 was published on GitHub only)

@@ -145,6 +145,10 @@ function Frame:SetRotation(r)
     self._rot = r
 end
 function Frame:SetTexture(t) self._tex = t end
+function Frame:SetAlpha(a)
+    if type(a) ~= "number" then error("SetAlpha: number expected", 2) end
+    self._alpha = a
+end
 function Frame:GetTexture() return self._tex end
 function Frame:StartMoving()
     if self._movable ~= true then error("Frame is not movable", 2) end
@@ -229,7 +233,35 @@ function UnitXPMax() return W.xpMax end
 function UnitClass() return W.class:sub(1, 1) .. W.class:sub(2):lower(), W.class, 1 end
 function UnitRace() return W.race, W.race, W.raceId end
 function UnitFactionGroup() return W.faction end
-function UnitName() return "Tester" end
+W.plates = {}   -- [unit] = { name=, secret=bool }
+function UnitName(unit)
+    local p = unit and W.plates[unit]
+    if p then
+        if p.secret then return W.SECRET end
+        return p.name
+    end
+    return "Tester"
+end
+-- secret values (Midnight/Forever): an opaque value addons may not compare or do maths on
+W.SECRET = setmetatable({}, { __eq = function() error("attempt to compare a secret value", 2) end,
+    __concat = function() error("attempt to concatenate a secret value", 2) end,
+    __index = function() error("attempt to index a secret value", 2) end })
+function issecretvalue(v) return rawequal(v, W.SECRET) end
+function IsInInstance() return W.inInstance or false, W.inInstance and "party" or "none" end
+C_NamePlate = {
+    GetNamePlateForUnit = function(unit)
+        local p = W.plates[unit]
+        if not p then return nil end
+        p.frame = p.frame or CreateFrame("Frame")
+        p.frame.namePlateUnitToken = unit
+        return p.frame
+    end,
+    GetNamePlates = function()
+        local out = {}
+        for unit in pairs(W.plates) do out[#out + 1] = C_NamePlate.GetNamePlateForUnit(unit) end
+        return out
+    end,
+}
 function GetMoney() return W.money end
 
 -- quest log
@@ -407,7 +439,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_ENTERING_WORLD QUEST_LOG_UPDATE QUE
 UNIT_QUEST_LOG_CHANGED QUEST_TURNED_IN QUEST_ACCEPTED QUEST_REMOVED PLAYER_LEVEL_UP PLAYER_XP_UPDATE
 GOSSIP_SHOW QUEST_GREETING QUEST_DETAIL QUEST_ACCEPT_CONFIRM QUEST_PROGRESS QUEST_COMPLETE MERCHANT_SHOW
 MERCHANT_CLOSED LEARNED_SPELL_IN_TAB LEARNED_SPELL_IN_SKILL_LINE PLAYER_REGEN_ENABLED PLAYER_REGEN_DISABLED
-ZONE_CHANGED_NEW_AREA ZONE_CHANGED SPELLS_CHANGED]]):gmatch("%S+") do W.knownEvents[e] = true end
+ZONE_CHANGED_NEW_AREA ZONE_CHANGED SPELLS_CHANGED NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED]]):gmatch("%S+") do W.knownEvents[e] = true end
 
 function W.fire(event, ...)
     if not W.knownEvents[event] then error("test fired unknown event " .. event) end

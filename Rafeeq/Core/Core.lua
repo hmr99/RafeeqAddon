@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 
-ns.version = "0.6.1-beta1"
+ns.version = "0.7.0-beta1"
 
 local defaults = {
     language     = nil, -- chosen on first login (picker), changeable any time
@@ -30,6 +30,12 @@ local defaults = {
     guideCard    = true,
     guideModels  = true,
     worldMarker  = true,
+    plateMarks   = true,
+    plateGlow    = true,
+    plateCVars   = true,
+    plateGlowStyle = "soft",
+    plateGlowColor = "gold",
+    plateGlowStrength = 0.7,
     point        = nil, -- { point, relPoint, x, y }
 }
 

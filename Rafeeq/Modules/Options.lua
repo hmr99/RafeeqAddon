@@ -10,6 +10,7 @@ ns.LANG_TABS = {
 }
 local win
 local widgets = {}
+local COL_W = 360
 
 local ITEMS = {
     { key = "autoAccept",   label = "OPT_AUTO_ACCEPT" },
@@ -34,6 +35,9 @@ local ITEMS = {
     { key = "guideCard",    label = "OPT_GUIDE" },
     { key = "guideModels",  label = "OPT_GUIDE_MODELS" },
     { key = "worldMarker",  label = "OPT_WORLD_MARKER" },
+    { key = "plateMarks",   label = "OPT_PLATE_MARKS" },
+    { key = "plateGlow",    label = "OPT_PLATE_GLOW" },
+    { key = "plateCVars",   label = "OPT_PLATE_CVARS" },
 }
 
 local function layout()
@@ -48,17 +52,20 @@ local function layout()
         tab.label:SetTextColor(active and 1 or 0.7, active and 1 or 0.7, active and 1 or 0.7)
     end
 
+    local perCol = math.ceil(#ITEMS / 2)
     for i, w in ipairs(widgets) do
         local item = ITEMS[i]
-        local y = -74 - (i - 1) * 25
+        local col = (i - 1) >= perCol and 1 or 0
+        local y = -74 - ((i - 1) % perCol) * 25
+        local colX = col * COL_W
         w.cb:ClearAllPoints()
         w.label:ClearAllPoints()
         if isAr then
-            w.cb:SetPoint("TOPRIGHT", win, "TOPRIGHT", -16, y)
+            w.cb:SetPoint("TOPRIGHT", win, "TOPRIGHT", -16 - colX, y)
             w.label:SetPoint("RIGHT", w.cb, "LEFT", -4, 0)
             w.label:SetJustifyH("RIGHT")
         else
-            w.cb:SetPoint("TOPLEFT", win, "TOPLEFT", 16, y)
+            w.cb:SetPoint("TOPLEFT", win, "TOPLEFT", 16 + colX, y)
             w.label:SetPoint("LEFT", w.cb, "RIGHT", 4, 0)
             w.label:SetJustifyH("LEFT")
         end
@@ -67,7 +74,22 @@ local function layout()
         w.cb:SetChecked(ns.db[item.key] and true or false)
     end
 
-    local y = -74 - #ITEMS * 25 - 6
+    local y = -74 - perCol * 25 - 6
+    -- glow style / colour / strength
+    local db = ns.db
+    local texts = {
+        L("PLATE_STYLE", ns.Lraw("STYLE_" .. (db.plateGlowStyle or "soft"))),
+        L("PLATE_COLOR", ns.Lraw("COLOR_" .. (db.plateGlowColor or "gold"))),
+        L("PLATE_STRENGTH", math.floor((db.plateGlowStrength or 0.7) * 100 + 0.5)),
+    }
+    for i, b in ipairs(win.glowBtns) do
+        b:ClearAllPoints()
+        b:SetPoint("TOP", win, "TOP", (i - 2) * 200, y)
+        local fs = b:GetFontString()
+        if fs then ns.SetUIFont(fs, 12, "") end
+        b:SetText(texts[i])
+    end
+    y = y - 34
     win.scaleLabel:ClearAllPoints()
     ns.SetUIFont(win.scaleLabel, 13, "")
     win.scaleLabel:SetText(L("OPT_SCALE") .. "  " .. ("%.2f"):format(ns.db.scale or 1))
@@ -84,7 +106,7 @@ end
 
 local function create()
     win = CreateFrame("Frame", "RafeeqOptions", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    win:SetSize(360, 74 + #ITEMS * 25 + 110)
+    win:SetSize(2 * COL_W, 74 + math.ceil(#ITEMS / 2) * 25 + 150)
     win:SetPoint("CENTER")
     win:SetFrameStrata("DIALOG")
     win:SetMovable(true)
@@ -129,12 +151,34 @@ local function create()
         cb:SetSize(24, 24)
         local label = win:CreateFontString(nil, "OVERLAY")
         label:SetTextColor(0.95, 0.95, 0.95)
-        label:SetWidth(270)
+        label:SetWidth(COL_W - 60)
         cb:SetScript("OnClick", function(self)
             ns.db[item.key] = self:GetChecked() and true or false
             ns:Refresh()
         end)
         widgets[i] = { cb = cb, label = label }
+    end
+
+    -- cycle buttons for the nameplate glow
+    local function cycle(list, cur)
+        for i, v in ipairs(list) do if v == cur then return list[i % #list + 1] end end
+        return list[1]
+    end
+    win.glowBtns = {}
+    local actions = {
+        function() ns.db.plateGlowStyle = cycle(ns.Nameplates.STYLES, ns.db.plateGlowStyle) end,
+        function() ns.db.plateGlowColor = cycle(ns.Nameplates.COLOR_ORDER, ns.db.plateGlowColor) end,
+        function()
+            local v = (ns.db.plateGlowStrength or 0.7) + 0.15
+            if v > 1.001 then v = 0.25 end
+            ns.db.plateGlowStrength = math.floor(v * 100 + 0.5) / 100
+        end,
+    }
+    for i, fn in ipairs(actions) do
+        local b = CreateFrame("Button", nil, win, "UIPanelButtonTemplate")
+        b:SetSize(190, 26)
+        b:SetScript("OnClick", function() fn() ns:Refresh() end)
+        win.glowBtns[i] = b
     end
 
     win.scaleLabel = win:CreateFontString(nil, "OVERLAY")
