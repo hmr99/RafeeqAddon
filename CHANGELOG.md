@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.1-beta1 - 2026-11-22
+- Clicking a quest in the tracker now chooses it: its card, the arrow, the diamond and the AzerothGPS route all go to that quest; Shift-click only shows its card
+
 ## v0.9.0-beta1 - 2026-11-22
 - The quest card is now its own window: drag it anywhere, resize it from the corner grip, close it with X (position and size are saved)
 - Click a quest in the tracker to open its card; Shift-click starts the arrow and route, Ctrl-click collapses, right-click opens the quest log

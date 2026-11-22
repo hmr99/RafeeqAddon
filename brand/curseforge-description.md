@@ -18,7 +18,7 @@
 - Knows which quests you have completed and which are in your log.
 
 ### Guide arrow and map pins
-- Shift-click a quest to start the arrow. It points to the nearest objective, then to the quest giver once the quest is complete.
+- Click a quest in the tracker to choose it: the arrow, the diamond and (with AzerothGPS) the road route all go to it. Shift-click only shows its card. It points to the nearest objective, then to the quest giver once the quest is complete.
 - The arrow turns green when you face your target and red when the target is behind you.
 - Blizzard's in-world diamond marker sits on the same target and moves with it when you track another quest or a closer objective. Rafeeq turns `showInGameNavigation` on for you.
 - Kill, loot, turn-in and new-quest pins on the world map and the minimap.

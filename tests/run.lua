@@ -118,10 +118,10 @@ scenario("tracker clicks (collapse, shift = arrow)", function()
     W.ctrl = true row:Click("LeftButton")
     check(RafeeqCharDB.collapsed[7], "ctrl-click did not collapse the quest")
     row:Click("LeftButton") W.ctrl = false
-    W.shift = true row:Click("LeftButton") W.shift = false
+    row:Click("LeftButton")
     if qdbLoaded then
         local t = ns.Nav:Target()
-        check(t and t.questID == 7, "shift-click did not start the guide arrow")
+        check(t and t.questID == 7, "click did not choose the quest (arrow)")
     end
 end)
 
@@ -549,12 +549,13 @@ scenario("quest card window: click a quest, move, resize, close", function()
     local function row(id)
         for _, f in ipairs(W.frames) do if f.questID == id and f._kind == "Button" and f._shown then return f end end
     end
-    -- plain click on a quest in the tracker opens its card (no arrow needed)
-    row(33):Click("LeftButton") W.advance(0.6)
-    check(RafeeqGuide:IsShown() and textOf(RafeeqGuide):find("Wolves Across the Border", 1, true), "click did not open the quest's card")
-    check(ns.Nav:Target() == nil, "plain click should not start the arrow")
-    -- another quest replaces it
+    -- shift-click: only the card, the route stays as it is
+    W.shift = true row(33):Click("LeftButton") W.shift = false W.advance(0.6)
+    check(RafeeqGuide:IsShown() and textOf(RafeeqGuide):find("Wolves Across the Border", 1, true), "shift-click did not open the quest's card")
+    check(ns.Nav:Target() == nil, "shift-click should not change the route")
+    -- plain click: choose the quest -> card + arrow
     row(7):Click("LeftButton") W.advance(0.6)
+    check(ns.Nav:Target() and ns.Nav:Target().questID == 7, "click did not choose the quest for the route")
     local t = textOf(RafeeqGuide)
     check(t:find("Kobold Camp Cleanup", 1, true) and not t:find("Wolves Across", 1, true), "card did not switch quests")
     -- drag: position is saved
@@ -575,8 +576,8 @@ scenario("quest card window: click a quest, move, resize, close", function()
     -- X closes it and it stays closed until you ask again
     RafeeqGuide.close:Click() W.advance(1.1)
     check(not RafeeqGuide:IsShown(), "X did not close the card")
-    -- shift-click (arrow) opens it again for that quest
-    W.shift = true row(33):Click("LeftButton") W.shift = false W.advance(0.6)
+    -- choosing a quest opens its card again
+    row(33):Click("LeftButton") W.advance(0.6)
     check(RafeeqGuide:IsShown() and textOf(RafeeqGuide):find("Wolves Across the Border", 1, true), "arrow did not reopen the card")
     -- a quest that leaves the log closes its card
     table.remove(W.log, 2) W.fire("QUEST_LOG_UPDATE") ns.Nav:Clear() W.advance(1.1)

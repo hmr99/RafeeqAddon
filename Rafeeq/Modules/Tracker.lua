@@ -224,17 +224,16 @@ local function getRow(i)
             elseif ToggleQuestLog then
                 ToggleQuestLog()
             end
-        elseif IsShiftKeyDown() then
-            if ns.Data and ns.Data.ready and ns.Nav then
-                ns.Nav:SetQuest(id)
-            elseif C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
-                C_SuperTrack.SetSuperTrackedQuestID(id)
-            end
         elseif IsControlKeyDown and IsControlKeyDown() then
             ns.char.collapsed[id] = not ns.char.collapsed[id] or nil
             Tracker:Update()
-        elseif ns.Guide and ns.Data and ns.Data.ready then
-            ns.Guide:Show(id) -- plain click: the quest's step-by-step card
+        elseif IsShiftKeyDown() and ns.Guide and ns.Data and ns.Data.ready then
+            ns.Guide:Show(id) -- shift: just look at this quest's card, keep the current route
+        elseif ns.Data and ns.Data.ready and ns.Nav then
+            -- plain click = choose this quest: card + arrow + diamond + AzerothGPS route
+            ns.Nav:SetQuest(id)
+        elseif C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
+            C_SuperTrack.SetSuperTrackedQuestID(id)
         else
             ns.char.collapsed[id] = not ns.char.collapsed[id] or nil
             Tracker:Update()
