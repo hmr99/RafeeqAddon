@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.3-beta1 - 2026-11-22
+- Fixed: the in-world diamond could vanish from the screen while its pin stayed on the map and minimap (the game moved its tracking to a quest, or the setting or the waypoint was reset) - Rafeeq now puts it back within a second
+
 ## v0.9.2-beta1 - 2026-11-22
 - Fixed: after a /reload (or with an old AzerothGPS route), choosing a quest added Rafeeq's stop next to the old one and AzerothGPS's fastest order could send you to the old stop first - the old route is now always cleared first
 

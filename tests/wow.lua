@@ -355,9 +355,12 @@ C_Map.ClearUserWaypoint = function() W.waypoint = nil end
 C_Map.HasUserWaypoint = function() return W.waypoint ~= nil end
 C_Map.CanSetUserWaypointOnMap = function(map) return map ~= 99999 end
 function SetCVar(k, v) W.cvars[k] = tostring(v) end
+-- as in the game: one thing is super-tracked at a time, so tracking a quest drops the waypoint's diamond
 C_SuperTrack = {
-    SetSuperTrackedQuestID = function(id) W.superTracked = id end,
-    SetSuperTrackedUserWaypoint = function(on) W.superTrackedWaypoint = on end,
+    SetSuperTrackedQuestID = function(id) W.superTracked = id if id and id ~= 0 then W.superTrackedWaypoint = false end end,
+    GetSuperTrackedQuestID = function() return W.superTracked or 0 end,
+    SetSuperTrackedUserWaypoint = function(on) W.superTrackedWaypoint = on if on then W.superTracked = 0 end end,
+    IsSuperTrackingUserWaypoint = function() return W.superTrackedWaypoint == true and W.waypoint ~= nil end,
 }
 
 -- containers / merchant

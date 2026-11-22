@@ -385,6 +385,17 @@ scenario("in-world diamond follows the arrow target", function()
         and math.abs(W.waypoint.position.x - t.x / 100) < 1e-6 and math.abs(W.waypoint.position.y - t.y / 100) < 1e-6,
         "diamond not on the arrow target")
     check(W.superTrackedWaypoint == true, "waypoint not super-tracked (no diamond)")
+    -- the game takes the super-track away (quest accepted/clicked in Blizzard's tracker): the diamond only
+    -- stays on the map and minimap. Rafeeq must take it back so it shows in the world again.
+    C_SuperTrack.SetSuperTrackedQuestID(33)
+    W.advance(1.5)
+    check(W.superTrackedWaypoint == true, "diamond lost from the screen after the game super-tracked a quest")
+    -- the CVar turned off by something else (another addon, a settings reset)
+    W.cvars.showInGameNavigation = "0" W.advance(1.5)
+    check(W.cvars.showInGameNavigation == "1", "showInGameNavigation left off while the diamond option is on")
+    -- another addon removed the game waypoint
+    C_Map.ClearUserWaypoint() W.advance(1.5)
+    check(W.waypoint ~= nil and W.superTrackedWaypoint == true, "diamond not put back after the waypoint was removed")
     local first = wp()
     -- switch the tracked quest -> the diamond moves
     ns.Nav:SetQuest(33) W.advance(0.3)

@@ -83,6 +83,27 @@ local function syncWaypoint()
 end
 Nav.SyncWaypoint = syncWaypoint
 
+-- The on-screen diamond needs three things to stay true: the CVar on, our waypoint still placed, and the
+-- waypoint super-tracked. The game moves the super-track to a quest on its own (accepting a quest, a click in
+-- its tracker) and other addons can clear the waypoint or the CVar; the pin then stays on the map and
+-- minimap but the diamond is gone from the world. Checked about once a second, put back when lost.
+local function keepDiamond()
+    if not ns.db.worldMarker or not ourWaypoint or not waypointAPI() then return end
+    if GetCVar and SetCVar and GetCVar("showInGameNavigation") ~= "1" then
+        pcall(SetCVar, "showInGameNavigation", "1")
+    end
+    if C_Map.HasUserWaypoint and not C_Map.HasUserWaypoint() then
+        ourWaypoint = nil
+        syncWaypoint()
+        return
+    end
+    local ST = C_SuperTrack
+    if ST and ST.IsSuperTrackingUserWaypoint and ST.SetSuperTrackedUserWaypoint
+        and not ST.IsSuperTrackingUserWaypoint() then
+        pcall(ST.SetSuperTrackedUserWaypoint, true)
+    end
+end
+
 -- tell the AzerothGPS bridge (if any) where we are heading
 local function syncGPS()
     if ns.GPSBridge then pcall(ns.GPSBridge.Sync, ns.GPSBridge) end
@@ -250,7 +271,7 @@ end
 
 local driftSince, lastDriftAlert = nil, -99
 
-local recomputeTimer = 0
+local recomputeTimer, diamondTimer = 0, 0
 function Nav:Tick()
     if not target then frame:Hide() return end
     -- while AzerothGPS routes along the roads, our straight-line arrow would contradict it: hide it
@@ -259,6 +280,11 @@ function Nav:Tick()
     frame:SetAlpha(guiding and 0 or 1)
     frame:EnableMouse(not guiding)
     recomputeTimer = recomputeTimer + 0.05
+    diamondTimer = diamondTimer + 0.05
+    if diamondTimer >= 1 then
+        diamondTimer = 0
+        keepDiamond()
+    end
     if target.mode == "quest" and recomputeTimer > 2 then
         recomputeTimer = 0
         self:Recompute()
