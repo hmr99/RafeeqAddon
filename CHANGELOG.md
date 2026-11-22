@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.1-beta1 - 2026-11-22
+- New: Blizzard's in-world diamond marker sits on the arrow's target and moves with it when you track another quest or reach a closer objective (option: In-world diamond marker - it turns on showInGameNavigation for you)
+- Fixed: release notes containing a semicolon could not be uploaded to CurseForge (v0.6.0-beta1 was published on GitHub only)
+
 ## v0.6.0-beta1 - 2026-11-22
 - New: Blizzard's in-world diamond marker now sits on the arrow's target and moves with it - track another quest, or reach a closer objective, and the diamond follows (option: In-world diamond marker; turns on showInGameNavigation for you)
 

@@ -20,3 +20,5 @@ jobs:
         run: python3 tests/run.py --qdb ../QuestieDB
       - name: Play-test without QuestieDB
         run: python3 tests/run.py
+      - name: CurseForge upload script sends valid metadata
+        run: sh tests/upload_check.sh

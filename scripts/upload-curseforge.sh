@@ -34,9 +34,9 @@ METADATA=$(jq -n \
 
 response=$(curl -sS -w '\n%{http_code}' \
   -H "X-Api-Token: $CF_API_TOKEN" \
-  -F "metadata=$METADATA" \
+  --form-string "metadata=$METADATA" \
   -F "file=@$ZIP" \
-  "https://wow.curseforge.com/api/projects/$CF_PROJECT_ID/upload-file")
+  "${CF_API_URL:-https://wow.curseforge.com}/api/projects/$CF_PROJECT_ID/upload-file")
 code=$(printf '%s' "$response" | tail -n1)
 body=$(printf '%s' "$response" | sed '$d')
 echo "CurseForge HTTP $code: $body"

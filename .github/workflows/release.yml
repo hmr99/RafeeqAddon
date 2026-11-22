@@ -62,6 +62,7 @@ jobs:
         run: |
           python3 tests/run.py --qdb ../QuestieDB
           python3 tests/run.py
+          sh tests/upload_check.sh
 
       - name: Package
         if: env.SKIP != '1'
