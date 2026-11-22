@@ -170,7 +170,10 @@ end
 
 local function anchorCard()
     card:ClearAllPoints()
-    if RafeeqArrow then
+    local gpsArrow = ns.GPSBridge and ns.GPSBridge:ArrowAnchor()
+    if gpsArrow then
+        card:SetPoint("TOP", gpsArrow, "BOTTOM", 0, -6)
+    elseif RafeeqArrow then
         card:SetPoint("TOP", RafeeqArrow, "BOTTOM", 0, -6)
     else
         card:SetPoint("TOP", UIParent, "TOP", 0, -240)

@@ -477,6 +477,52 @@ scenario("nameplate marks: quest mobs, drop sources, glow options", function()
     W.advance(0.6)
 end)
 
+scenario("AzerothGPS bridge: road route + its arrow", function()
+    if not qdbLoaded then return end
+    W.map, W.px, W.py = 1429, 0.48, 0.42
+    -- without AzerothGPS nothing changes
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(RafeeqArrow._alpha ~= 0, "Rafeeq arrow hidden without AzerothGPS")
+    ns.Nav:Clear()
+    -- fake AzerothGPS: its API table, /agps and its own /way (TomTom absent)
+    local calls = {}
+    AzerothGPS = { version = 21 }
+    SlashCmdList.AZEROTHGPS = function(msg) calls[#calls + 1] = "agps " .. msg end
+    SLASH_AZEROTHGPSWAY1 = "/way"
+    SlashCmdList.AZEROTHGPSWAY = function(msg) calls[#calls + 1] = "way " .. msg end
+    AzerothGPSArrow = CreateFrame("Frame", "AzerothGPSArrow") AzerothGPSArrow:Show()
+    ns.Nav:SetQuest(7) W.advance(0.6)
+    check(calls[1] and calls[1]:find("^way #1429 %d+%.%d+ %d+%.%d+ Kobold Camp Cleanup$"),
+        "no /way stop sent to AzerothGPS: " .. tostring(calls[1]))
+    check(RafeeqArrow._alpha == 0, "Rafeeq arrow still visible while AzerothGPS guides")
+    local anchored
+    for _, p in ipairs(RafeeqGuide._points) do if p[2] == AzerothGPSArrow then anchored = true end end
+    check(anchored, "card not moved under AzerothGPS's arrow")
+    -- small moves of the nearest spawn do not spam new routes
+    local n = #calls
+    W.px = W.px + 0.002 W.advance(2.6)
+    check(#calls == n, "re-routed for a tiny move: " .. table.concat(calls, " | "))
+    -- another quest: old route cleared, new stop sent
+    ns.Nav:SetQuest(33) W.advance(0.3)
+    check(calls[n + 1] == "agps clear" and calls[n + 2] and calls[n + 2]:find("Wolves Across the Border", 1, true),
+        "switching quests did not replace the route: " .. table.concat(calls, " | "))
+    -- titles never carry '#' (AzerothGPS reads a trailing #word as an icon)
+    ns.Nav:SetPoint(1429, 50, 50, "Camp #2") W.advance(0.2)
+    check(not calls[#calls]:find("#2", 1, true), "title with '#' passed through: " .. calls[#calls])
+    -- clearing the arrow clears the route
+    ns.Nav:Clear()
+    check(calls[#calls] == "agps clear", "route not cleared with the arrow")
+    -- option off: no calls, Rafeeq's arrow back
+    RafeeqDB.gpsBridge = false
+    n = #calls
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(#calls == n, "AzerothGPS called with the bridge turned off")
+    check(RafeeqArrow._alpha == 1, "Rafeeq arrow not back with the bridge off")
+    ns.Nav:Clear() RafeeqDB.gpsBridge = true
+    AzerothGPS, SlashCmdList.AZEROTHGPS, SLASH_AZEROTHGPSWAY1, SlashCmdList.AZEROTHGPSWAY = nil, nil, nil, nil
+    AzerothGPSArrow:Hide() AzerothGPSArrow = nil
+end)
+
 scenario("quest complete -> ready + turn-in arrow", function()
     W.log[1].complete = true
     W.log[1].objectives[1].finished = true

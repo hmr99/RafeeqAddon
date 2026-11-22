@@ -145,6 +145,7 @@ function Frame:SetRotation(r)
     self._rot = r
 end
 function Frame:SetTexture(t) self._tex = t end
+function Frame:EnableMouse(v) self._mouse = v and true or false end
 function Frame:SetAlpha(a)
     if type(a) ~= "number" then error("SetAlpha: number expected", 2) end
     self._alpha = a

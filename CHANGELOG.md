@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.8.0-beta1 - 2026-11-22
+- New: road routes with AzerothGPS (optional) - every Rafeeq target becomes an AzerothGPS stop, so you get a route that follows the roads and its turn-by-turn arrow; Rafeeq's arrow steps aside and the step-by-step card moves under AzerothGPS's arrow (option: Road route via AzerothGPS)
+
 ## v0.7.0-beta1 - 2026-11-22
 - New: quest marks on nameplates - skull with progress on mobs you must kill, a bag on mobs that drop what you need, ! and ? on quest givers and turn-ins
 - New: optional glow on quest mobs - choose the style (soft, ring, pulse), colour and strength in /rf

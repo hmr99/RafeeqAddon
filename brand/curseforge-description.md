@@ -23,6 +23,12 @@
 - Blizzard's in-world diamond marker sits on the same target and moves with it when you track another quest or a closer objective. Rafeeq turns `showInGameNavigation` on for you.
 - Kill, loot, turn-in and new-quest pins on the world map and the minimap.
 
+### Road routes with AzerothGPS (optional)
+- With AzerothGPS installed, Rafeeq sends every target to it as a route stop.
+- AzerothGPS draws a route that follows the roads, and its turn-by-turn arrow guides you.
+- Rafeeq's own arrow steps aside, and the step-by-step card moves under AzerothGPS's arrow.
+- Rafeeq uses AzerothGPS's own `/way` and `/agps clear` commands. AzerothGPS is a separate addon by its own authors.
+
 ### Quest marks on mobs and NPCs
 - **Mobs you must kill:** a skull with your progress (4/10).
 - **Mobs that drop an item you need:** a bag.

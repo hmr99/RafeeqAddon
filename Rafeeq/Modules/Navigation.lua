@@ -83,6 +83,11 @@ local function syncWaypoint()
 end
 Nav.SyncWaypoint = syncWaypoint
 
+-- tell the AzerothGPS bridge (if any) where we are heading
+local function syncGPS()
+    if ns.GPSBridge then pcall(ns.GPSBridge.Sync, ns.GPSBridge) end
+end
+
 function Nav:ApplyWorldMarkerSetting()
     if ns.db.worldMarker and SetCVar then pcall(SetCVar, "showInGameNavigation", "1") end
     if ns.db.worldMarker then syncWaypoint() else clearWaypoint() end
@@ -92,6 +97,7 @@ function Nav:SetPoint(map, x, y, text)
     arrivedKey = nil
     target = { mode = "point", map = map, x = x, y = y, label = text }
     syncWaypoint()
+    syncGPS()
     self:Show()
 end
 
@@ -100,6 +106,7 @@ function Nav:SetQuest(questID)
     target = { mode = "quest", questID = questID }
     self:Recompute()
     syncWaypoint()
+    syncGPS()
     self:Show()
 end
 
@@ -107,6 +114,7 @@ function Nav:Clear()
     target = nil
     lastDistance = nil
     clearWaypoint()
+    if ns.GPSBridge then pcall(ns.GPSBridge.OnTargetCleared, ns.GPSBridge) end
     if frame then frame:Hide() end
 end
 
@@ -244,11 +252,15 @@ local driftSince, lastDriftAlert = nil, -99
 local recomputeTimer = 0
 function Nav:Tick()
     if not target then frame:Hide() return end
+    local gpsArrow = ns.GPSBridge and ns.GPSBridge:ArrowAnchor()
+    frame:SetAlpha(gpsArrow and 0 or 1)
+    frame:EnableMouse(not gpsArrow)
     recomputeTimer = recomputeTimer + 0.05
     if target.mode == "quest" and recomputeTimer > 2 then
         recomputeTimer = 0
         self:Recompute()
         syncWaypoint() -- the nearest objective changed -> move the diamond with it
+        syncGPS()
     end
     label:SetText(target.label or "")
     local function noDirection(textKey)

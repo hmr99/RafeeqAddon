@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 
-ns.version = "0.7.0-beta1"
+ns.version = "0.8.0-beta1"
 
 local defaults = {
     language     = nil, -- chosen on first login (picker), changeable any time
@@ -31,6 +31,7 @@ local defaults = {
     guideModels  = true,
     worldMarker  = true,
     plateMarks   = true,
+    gpsBridge    = true,
     plateGlow    = true,
     plateCVars   = true,
     plateGlowStyle = "soft",
