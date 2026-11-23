@@ -792,6 +792,29 @@ scenario("long session stress", function()
     end
 end)
 
+scenario("old QuestieDB (contract too low) is refused with a warning", function()
+    -- A player runs Rafeeq with an older QuestieDB. Its RequireContract does not raise: it
+    -- returns false plus a message (QuestieDB docs/api.md "Contract version").
+    local saved = { lib = _G.LibQuestieDB, q = _G.QuestDB, n = _G.NpcDB, ready = ns.Data.ready }
+    _G.LibQuestieDB = { contractVersion = 3, minSupportedContract = 1,
+        RequireContract = function(v) if v <= 3 then return true end
+            return false, "QuestieDB contract mismatch" end }
+    _G.QuestDB, _G.NpcDB = {}, {}
+    ns.Data.ready = false
+    local chatBefore = #W.chat
+    W.safe(function() ns.Data:Init() end, "Rafeeq")
+    check(not ns.Data.ready, "data layer marked ready on a QuestieDB with contract 3 (needs 4)")
+    local warned = false
+    for i = chatBefore + 1, #W.chat do if W.chat[i]:find("too old") then warned = true end end
+    check(warned, "no 'QuestieDB is too old' warning for an outdated QuestieDB")
+    _G.LibQuestieDB, _G.QuestDB, _G.NpcDB = saved.lib, saved.q, saved.n
+    ns.Data.ready = false
+    if saved.ready then
+        ns.Data:Init()
+        check(ns.Data.ready, "data layer did not recover with the real QuestieDB")
+    end
+end)
+
 scenario("leaked globals (end of session)", function()
     for k in pairs(_G) do
         if not before[k] and not ALLOWED_GLOBALS[k] then check(false, "unexpected global: " .. tostring(k)) end

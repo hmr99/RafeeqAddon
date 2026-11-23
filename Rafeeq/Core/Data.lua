@@ -28,8 +28,9 @@ function Data:Init()
     local lib = _G.LibQuestieDB
     if not lib or not _G.QuestDB or not _G.NpcDB then return false end
     if lib.RequireContract then
-        local ok = pcall(lib.RequireContract, 4)
-        if not ok then ns.Print("NEED_QDB_UPDATE") return false end
+        -- RequireContract returns (false, message) on a mismatch; it does not raise.
+        local called, ok = pcall(lib.RequireContract, 4)
+        if not called or not ok then ns.Print("NEED_QDB_UPDATE") return false end
     end
     local zdb = lib.Support and lib.Support.Get and lib.Support.Get("ZoneDB")
     if zdb and zdb.private then
