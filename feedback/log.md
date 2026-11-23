@@ -35,3 +35,22 @@ Tests: 28/28 with QuestieDB, 28/28 without (1 scenario added today). Latest rele
   Forever hotfixes Nov 11/13 are gameplay only; no new API change notes after 1.60.1.
 - **Housekeeping** - branch deletion is blocked by the session proxy; `test/nameplate-turnin-givers`
   and `fix/nav-banner-arrival` are merged and can be deleted by hand.
+
+## 2026-11-23
+
+Tests: 31/31 with QuestieDB, 31/31 without (1 scenario added today). Latest release: v0.9.4-beta1.
+
+- **QA (static review vs QuestieDB docs/api.md)** - `Rafeeq/Core/Data.lua` - bug - the contract check
+  looked only at `pcall`'s status, but `RequireContract` returns `false, message` and does not raise,
+  so an outdated QuestieDB (contract < 4) was accepted with no "update QuestieDB" warning. Fixed:
+  [PR #3](https://github.com/hmr99/RafeeqAddon/pull/3), shipped in
+  [v0.9.4-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.9.4-beta1) (CurseForge HTTP 200, file 9767977).
+- **QA (new scenario)** - `old QuestieDB (contract too low) is refused with a warning` (failed before the fix).
+- **QA (static review)** - v0.9.x changes in Navigation/Tracker/GPSBridge/Guide: guarded APIs, pcall on
+  CVar and super-track calls, no new globals. Risk: `keepDiamond` re-takes the super-track every second,
+  so a player who super-tracks a Blizzard quest by hand gets it taken back while Rafeeq's waypoint is set.
+- **GitHub issues** - none open, no new comments.
+- **CurseForge comments** - page could not be read (fetch permission not answered); nothing triaged.
+- **Upstream** - QuestieDB e3c3bc4: contract 4 (min supported 1), matches `RequireContract(4)`.
+  No Forever API change notes after 1.60.1.
+- **Housekeeping** - branch deletion still blocked by the proxy: `fix/qdb-contract-check` can be deleted by hand.
