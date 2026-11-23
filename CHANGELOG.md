@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.4-beta1 - 2026-11-23
+- Fixed: with an outdated QuestieDB, Rafeeq now tells you to update it instead of running with missing data
+
 ## v0.9.3-beta1 - 2026-11-22
 - Fixed: the in-world diamond could vanish from the screen while its pin stayed on the map and minimap (the game moved its tracking to a quest, or the setting or the waypoint was reset) - Rafeeq now puts it back within a second
 

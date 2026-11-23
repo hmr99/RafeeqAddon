@@ -2,7 +2,7 @@
 ## Title: |cff33ccffRafeeq|r - رفيق المهام
 ## Notes: Quest helper for WoW: Forever - tracker, quest XP, automation, Arabic UI.
 ## Author: Humaid
-## Version: 0.9.3-beta1
+## Version: 0.9.4-beta1
 ## OptionalDeps: QuestieDB, AzerothGPS, TomTom
 ## X-Curse-Project-ID: 1818922
 ## X-Website: https://github.com/hmr99/RafeeqAddon
