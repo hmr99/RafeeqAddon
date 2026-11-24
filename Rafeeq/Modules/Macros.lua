@@ -68,8 +68,9 @@ function Macros:Build(kind)
     return (body:gsub("\n$", ""))
 end
 
+-- returns true when saved, false plus a reason ("combat" or "full") when not
 local function save(kind, body)
-    if InCombatLockdown() then ns.Print("MACRO_COMBAT") return false end
+    if InCombatLockdown() then return false, "combat" end
     local name = NAMES[kind]
     local icon = "INV_MISC_QUESTIONMARK"
     local idx = GetMacroIndexByName(name)
@@ -77,16 +78,29 @@ local function save(kind, body)
         EditMacro(idx, name, icon, body)
     else
         local _, perChar = GetNumMacros()
-        if (perChar or 0) >= (MAX_CHARACTER_MACROS or 18) then ns.Print("MACRO_FULL") return false end
+        if (perChar or 0) >= (MAX_CHARACTER_MACROS or 18) then return false, "full" end
         CreateMacro(name, icon, body, true)
     end
     return true
 end
 
-function Macros:BuildAll()
+local ORDER = { "st", "aoe", "cd" }
+
+-- Saves the three macros in a fixed order and tells the player once what happened:
+-- "saved" only when all three were written, "slots are full" once when any did not fit.
+local function saveAll(bodyOf)
     if InCombatLockdown() then ns.Print("MACRO_COMBAT") return end
-    for kind in pairs(NAMES) do save(kind, self:Build(kind)) end
-    ns.Print("MACRO_DONE")
+    local full = false
+    for _, kind in ipairs(ORDER) do
+        local ok, why = save(kind, bodyOf(kind))
+        if not ok and why == "combat" then ns.Print("MACRO_COMBAT") return end
+        if not ok and why == "full" then full = true end
+    end
+    ns.Print(full and "MACRO_FULL" or "MACRO_DONE")
+end
+
+function Macros:BuildAll()
+    saveAll(function(kind) return self:Build(kind) end)
 end
 
 ---------------------------------------------------------------------------
@@ -96,7 +110,6 @@ local win
 local boxes = {}
 
 local TITLES = { st = "MACRO_ST", aoe = "MACRO_AOE", cd = "MACRO_CD" }
-local ORDER = { "st", "aoe", "cd" }
 
 local function create()
     win = CreateFrame("Frame", "RafeeqMacros", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
@@ -157,9 +170,7 @@ local function create()
         for _, kind in ipairs(ORDER) do boxes[kind].eb:SetText(Macros:Build(kind)) end
     end)
     win.saveBtn = button("MACRO_SAVE", 95, function()
-        if InCombatLockdown() then ns.Print("MACRO_COMBAT") return end
-        for _, kind in ipairs(ORDER) do save(kind, boxes[kind].eb:GetText()) end
-        ns.Print("MACRO_DONE")
+        saveAll(function(kind) return boxes[kind].eb:GetText() end)
     end)
     win:Hide()
 end
