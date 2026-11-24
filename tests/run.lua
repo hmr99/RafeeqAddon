@@ -792,6 +792,35 @@ scenario("long session stress", function()
     end
 end)
 
+scenario("macro maker: mage with a nearly full macro list", function()
+    -- A mage who already keeps 17 of the 18 character macros presses "make macros".
+    local savedClass, savedMacros, savedSpells = W.class, W.macros, W.spells
+    W.class = "MAGE"
+    W.spells = { ["Fire Blast"] = { id = 2136, cd = 8000 }, ["Frostbolt"] = { id = 116, cd = 0 },
+        ["Frost Nova"] = { id = 122, cd = 25000 }, ["Arcane Explosion"] = { id = 1449, cd = 0 } }
+    W.macros = {}
+    for i = 1, 17 do W.macros["Mine" .. i] = "/say " .. i end
+    W.chat = {}
+    ns.Macros:BuildAll()
+    local made, full, done = 0, 0, 0
+    for _, n in ipairs({ "RF_ST", "RF_AOE", "RF_CD" }) do if W.macros[n] then made = made + 1 end end
+    for _, l in ipairs(W.chat) do
+        if l:find("slots are full") then full = full + 1 end
+        if l:find("Macros saved") then done = done + 1 end
+    end
+    check(made == 1, "expected exactly one macro made in the last free slot, got " .. made)
+    check(full == 1, "'slots are full' should be said once, said " .. full .. " times")
+    check(done == 0, "said all three macros were saved while two did not fit")
+    check(W.macros.RF_ST == nil or W.macros.RF_ST:find("Frostbolt"), "mage RF_ST has no Frostbolt")
+    for i = 1, 17 do check(W.macros["Mine" .. i] == "/say " .. i, "a player macro was changed") end
+    -- With room again, all three are made and the player is told so.
+    W.macros = {} W.chat = {}
+    ns.Macros:BuildAll()
+    check(W.macros.RF_ST and W.macros.RF_AOE and W.macros.RF_CD, "free slots but macros not made")
+    check(chatHas("Macros saved"), "no 'saved' message after a full save")
+    W.class, W.macros, W.spells = savedClass, savedMacros, savedSpells
+end)
+
 scenario("old QuestieDB (contract too low) is refused with a warning", function()
     -- A player runs Rafeeq with an older QuestieDB. Its RequireContract does not raise: it
     -- returns false plus a message (QuestieDB docs/api.md "Contract version").
