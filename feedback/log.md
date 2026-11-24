@@ -54,3 +54,19 @@ Tests: 31/31 with QuestieDB, 31/31 without (1 scenario added today). Latest rele
 - **Upstream** - QuestieDB e3c3bc4: contract 4 (min supported 1), matches `RequireContract(4)`.
   No Forever API change notes after 1.60.1.
 - **Housekeeping** - branch deletion still blocked by the proxy: `fix/qdb-contract-check` can be deleted by hand.
+
+## 2026-11-24
+
+Tests: 32/32 with QuestieDB, 32/32 without (1 scenario added today). Latest release: v0.9.5-beta1.
+
+- **QA (new scenario)** - `macro maker: mage with a nearly full macro list` (other class + full macro
+  list) - bug - with room for fewer than three macros, Rafeeq said "slots are full" once per macro and
+  then "Macros saved: RF_ST, RF_AOE, RF_CD" although only one was made. Fixed: save in a fixed order
+  (RF_ST first), one message. [PR #4](https://github.com/hmr99/RafeeqAddon/pull/4), shipped in
+  [v0.9.5-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.9.5-beta1) (CurseForge HTTP 200, file 9786073).
+- **QA (static review)** - `Rafeeq/Modules/Macros.lua`: no protected call in combat, bodies capped at 255.
+- **GitHub issues** - none open, no new comments.
+- **CurseForge comments** - page could not be read (fetch permission not answered); nothing triaged.
+- **Upstream** - QuestieDB 47a4756 (1.1.5): contract 4 (min supported 1), matches `RequireContract(4)`.
+  No Forever API change notes after 1.60.1.
+- **Housekeeping** - branch deletion blocked by the proxy: `fix/macro-full-message` can be deleted by hand.
