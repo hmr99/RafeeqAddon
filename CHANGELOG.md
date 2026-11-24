@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.5-beta1 - 2026-11-24
+- Macro maker: when your character macro list is full, Rafeeq now says so once and no longer claims all three macros were saved
+
 ## v0.9.4-beta1 - 2026-11-23
 - Fixed: with an outdated QuestieDB, Rafeeq now tells you to update it instead of running with missing data
 
