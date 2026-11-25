@@ -844,6 +844,30 @@ scenario("old QuestieDB (contract too low) is refused with a warning", function(
     end
 end)
 
+scenario("merchant: low-gold player, greys pay for the repair; empty bags stay quiet", function()
+    -- a broke player with greys worth more than the repair bill
+    W.bags = { [0] = { [1] = { quality = 0, hyperlink = "item:rag", price = 150, stackCount = 2 },
+        [2] = { quality = 0, hyperlink = "item:bone", price = 200 } } }
+    W.money, W.repairCost, W.repaired, W.sold, W.chat = 100, 450, nil, {}, {}
+    MerchantFrame._shown = true
+    W.fire("MERCHANT_SHOW") W.advance(2)
+    check(#W.sold == 2, "expected 2 greys sold, got " .. #W.sold)
+    check(W.repaired == "self", "did not repair although the greys paid for it (money " .. W.money .. ")")
+    check(not chatHas("Not enough gold"), "said 'not enough gold' while greys were still being sold")
+    -- the vendor closes before the sales cover the bill: no repair, no error
+    W.bags = { [0] = { [1] = { quality = 0, hyperlink = "item:r1", price = 300 }, [2] = { quality = 0, hyperlink = "item:r2", price = 300 } } }
+    W.money, W.repairCost, W.repaired, W.sold = 0, 500, nil, {}
+    W.fire("MERCHANT_SHOW") MerchantFrame._shown = false W.advance(2)
+    check(W.repaired == nil, "repaired after the vendor closed")
+    -- empty bags (all slots nil) and nothing to repair: no messages at all
+    MerchantFrame._shown = true
+    W.bags = { [0] = {}, [1] = {} }
+    W.repairCost, W.chat = 0, {}
+    W.fire("MERCHANT_SHOW") W.advance(1)
+    check(#W.chat == 0, "printed something with empty bags: " .. tostring(W.chat[1]))
+    MerchantFrame._shown = false
+end)
+
 scenario("leaked globals (end of session)", function()
     for k in pairs(_G) do
         if not before[k] and not ALLOWED_GLOBALS[k] then check(false, "unexpected global: " .. tostring(k)) end
