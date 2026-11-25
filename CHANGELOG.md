@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.6-beta1 - 2026-11-25
+- Auto-repair no longer says 'not enough gold' when the grey items being sold would pay for it - it repairs as soon as the sales finish.
+
 ## v0.9.5-beta1 - 2026-11-24
 - Macro maker: when your character macro list is full, Rafeeq now says so once and no longer claims all three macros were saved
 
