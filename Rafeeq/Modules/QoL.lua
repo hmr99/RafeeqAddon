@@ -17,11 +17,24 @@ end
 -- Vendor
 ---------------------------------------------------------------------------
 local sellQueue, selling = {}, false
+local repairAfterSales = false -- gold was short; retry once the greys are sold
+local tryRepair
 
 local function sellNext()
-    if not MerchantFrame or not MerchantFrame:IsShown() then wipe(sellQueue) selling = false return end
+    if not MerchantFrame or not MerchantFrame:IsShown() then
+        wipe(sellQueue) selling = false repairAfterSales = false return
+    end
     local item = table.remove(sellQueue, 1)
-    if not item then selling = false return end
+    if not item then
+        selling = false
+        if repairAfterSales then
+            repairAfterSales = false
+            C_Timer.After(0.3, function() -- let the last sale's gold arrive
+                if MerchantFrame and MerchantFrame:IsShown() then tryRepair(true) end
+            end)
+        end
+        return
+    end
     local info = C_Container.GetContainerItemInfo(item.bag, item.slot)
     if info and info.quality == 0 and info.hyperlink == item.link then
         C_Container.UseContainerItem(item.bag, item.slot)
@@ -29,8 +42,29 @@ local function sellNext()
     C_Timer.After(0.15, sellNext) -- staggered so the server never drops a sale
 end
 
+-- final: no more sales are coming, so report a gold shortfall
+function tryRepair(final)
+    if not (ns.db.autoRepair and CanMerchantRepair and CanMerchantRepair()) then return end
+    local cost, need = GetRepairAllCost()
+    if not (need and cost > 0) then return end
+    local guildOK = ns.db.guildRepair and CanGuildBankRepair and CanGuildBankRepair()
+        and GetGuildBankWithdrawMoney and (GetGuildBankWithdrawMoney() == -1 or GetGuildBankWithdrawMoney() >= cost)
+    if guildOK then
+        RepairAllItems(true)
+        ns.Print("REPAIRED_GUILD", money(cost))
+    elseif GetMoney() >= cost then
+        RepairAllItems()
+        ns.Print("REPAIRED", money(cost))
+    elseif not final and selling then
+        repairAfterSales = true -- the greys being sold may cover it
+    else
+        ns.Print("REPAIR_NO_MONEY", money(cost))
+    end
+end
+
 local function onMerchant()
     if IsShiftKeyDown() then return end
+    repairAfterSales = false
     if ns.db.autoSell and C_Container then
         local total, count = 0, 0
         wipe(sellQueue)
@@ -52,22 +86,7 @@ local function onMerchant()
             if not selling then selling = true sellNext() end
         end
     end
-    if ns.db.autoRepair and CanMerchantRepair and CanMerchantRepair() then
-        local cost, need = GetRepairAllCost()
-        if need and cost > 0 then
-            local guildOK = ns.db.guildRepair and CanGuildBankRepair and CanGuildBankRepair()
-                and GetGuildBankWithdrawMoney and (GetGuildBankWithdrawMoney() == -1 or GetGuildBankWithdrawMoney() >= cost)
-            if guildOK then
-                RepairAllItems(true)
-                ns.Print("REPAIRED_GUILD", money(cost))
-            elseif GetMoney() >= cost then
-                RepairAllItems()
-                ns.Print("REPAIRED", money(cost))
-            else
-                ns.Print("REPAIR_NO_MONEY", money(cost))
-            end
-        end
-    end
+    tryRepair(false)
 end
 
 ---------------------------------------------------------------------------
