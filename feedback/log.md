@@ -70,3 +70,21 @@ Tests: 32/32 with QuestieDB, 32/32 without (1 scenario added today). Latest rele
 - **Upstream** - QuestieDB 47a4756 (1.1.5): contract 4 (min supported 1), matches `RequireContract(4)`.
   No Forever API change notes after 1.60.1.
 - **Housekeeping** - branch deletion blocked by the proxy: `fix/macro-full-message` can be deleted by hand.
+
+## 2026-11-25
+
+Tests: 33/33 with QuestieDB, 33/33 without (1 scenario added today). Latest release: v0.9.6-beta1.
+
+- **QA (new scenario)** - `merchant: low-gold player, greys pay for the repair; empty bags stay quiet`
+  (low gold + empty bags) - bug - `Rafeeq/Modules/QoL.lua`: the repair check ran before the staggered
+  grey sales finished, so a player whose greys covered the bill got "Not enough gold to repair".
+  Fixed: retry the repair after the sales (vendor still open), report a shortfall only then.
+  [PR #5](https://github.com/hmr99/RafeeqAddon/pull/5), shipped in
+  [v0.9.6-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.9.6-beta1) (CurseForge HTTP 200, file 9805754).
+- **QA (static review)** - `QoL.lua` vendor/repair path: no protected calls, `tryRepair` is a local
+  (no new global), shift-skip kept.
+- **GitHub issues** - none open, no new comments.
+- **CurseForge comments** - page could not be read (fetch permission not answered); nothing triaged.
+- **Upstream** - QuestieDB 4377c98 (1.1.6): contract 4 (min supported 1), matches `RequireContract(4)`.
+  No Forever API change notes after 1.60.1 (Nov 11/13 hotfixes are gameplay only).
+- **Housekeeping** - branch deletion blocked by the proxy: `fix/repair-after-greys` can be deleted by hand.
