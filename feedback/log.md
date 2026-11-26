@@ -108,3 +108,9 @@ Tests: 34/34 with QuestieDB, 34/34 without (1 scenario added today). Latest rele
   min supported 1, so `RequireContract(4)` still passes. No Forever API change notes after 1.60.1.
 - **Housekeeping** - branch deletion blocked by the proxy: `fix/skyborne-race-mask` and
   `fix/repair-after-greys` can be deleted by hand.
+- **Humaid (request, approved)** - integrate with MapWise 3.0.11 - feature - studied the MapWise code
+  (no documented API; `MapWiseAPI` namespace). Bridge: "guide me" -> MapWise quest/point route, Rafeeq
+  arrow steps aside; one owner for the user waypoint; pins follow canvas resizes. AzerothGPS hand-off
+  retired on his call. [PR #7](https://github.com/hmr99/RafeeqAddon/pull/7), shipped in
+  [v0.10.0-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.10.0-beta1) (CurseForge HTTP 200, file 9832863).
+  Tests 36/36 both modes. Not provable in the emulator: real MapWise planning timing, its marker in game.
