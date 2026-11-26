@@ -32,6 +32,7 @@ local defaults = {
     worldMarker  = true,
     plateMarks   = true,
     gpsBridge    = true,
+    mapwiseBridge = true,
     plateGlow    = true,
     plateCVars   = true,
     plateGlowStyle = "soft",

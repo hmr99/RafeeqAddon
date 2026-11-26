@@ -555,6 +555,183 @@ scenario("AzerothGPS bridge: road route + its arrow", function()
     AzerothGPSArrow = nil
 end)
 
+-- Fake MapWise 3.0.11, modelled on its code (MapWiseAPI = its namespace, no documented API):
+--  * RoutePlanner:World(map, x, y, name) takes x/y in 0-1 and returns nil outside that range
+--  * RouteUI:RouteTo(goal, true) / QuestRouting:Start(id, mode) plan in the background; navigation
+--    starts a moment later. QuestRouting refuses in combat; RouteTo refuses in combat only when
+--    the player set combatOpen = false
+--  * while it navigates, RouteWorldNavigation places the game's user waypoint and super-tracks it;
+--    if anyone else changes that waypoint it "takes over": its marker goes off for that route
+--  * on release it puts back the waypoint that was there before
+local function installMapWise(version)
+    local mw = { calls = {}, takeovers = 0 }
+    local A = { version = version or "3.0.11", db = { combatOpen = nil }, UI = { frame = CreateFrame("Frame") },
+        ModernUI = { ready = true } }
+    local nav = { active = false, paused = false, stopped = false, arrived = false }
+    local planned, saved, mine
+    local function release()
+        if mine and W.waypoint == mine then W.waypoint = saved end
+        mine, saved = nil, nil
+    end
+    function nav.State(self) return self end
+    function nav.Stop(self)
+        mw.calls[#mw.calls + 1] = "nav stop"
+        self.active, self.stopped = false, true
+        release()
+    end
+    A.RouteNavigation = nav
+    A.RoutePlanner = { World = function(_, zone, x, y, name)
+        mw.calls[#mw.calls + 1] = ("world %s %.3f %.3f %s"):format(tostring(zone), x, y, tostring(name))
+        if not x or x < 0 or x > 1 or not y or y < 0 or y > 1 then return nil end
+        return { zone = tostring(zone), mx = x, my = y, n = name }
+    end }
+    A.RouteUI = { RouteTo = function(_, goal, fromPlayer)
+        mw.calls[#mw.calls + 1] = "routeto " .. tostring(goal and goal.n)
+        if A.db.combatOpen == false and W.combat then return false end
+        planned = { at = W.time + 1, map = tonumber(goal.zone), x = goal.mx, y = goal.my }
+        return true
+    end }
+    A.QuestRouting = {
+        Start = function(_, id, mode)
+            mw.calls[#mw.calls + 1] = "quest " .. tostring(id) .. " " .. tostring(mode)
+            if W.combat then return false end
+            planned = { at = W.time + 1, map = W.map, x = 0.5, y = 0.5 }
+            return true
+        end,
+        Stop = function()
+            mw.calls[#mw.calls + 1] = "quest stop"
+            nav.active, nav.stopped = false, true
+            release()
+        end,
+    }
+    local driver = CreateFrame("Frame")
+    driver:SetScript("OnUpdate", function()
+        if planned and W.time >= planned.at then
+            saved = W.waypoint
+            mine = UiMapPoint.CreateFromCoordinates(planned.map, planned.x, planned.y)
+            W.waypoint = mine C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+            nav.active, nav.stopped, nav.paused, planned = true, false, false, nil
+        elseif nav.active and mine and W.waypoint ~= mine then
+            mw.takeovers = mw.takeovers + 1   -- someone else moved the waypoint: marker off
+            mine = nil
+        end
+    end)
+    mw.A, mw.nav, mw.driver = A, nav, driver
+    function mw.playerRoute()   -- the player plans a route inside MapWise itself
+        planned = { at = W.time + 1, map = W.map, x = 0.9, y = 0.1 }
+    end
+    function mw.finish() nav.arrived = true nav.active = false release() end
+    function mw.remove() _G.MapWiseAPI = nil driver:SetScript("OnUpdate", nil) end
+    _G.MapWiseAPI = A
+    return mw
+end
+
+scenario("MapWise bridge: guide me goes to MapWise, one owner for the waypoint", function()
+    if not qdbLoaded then return end
+    ns.Nav:Clear()
+    W.map, W.px, W.py, W.waypoint = 1429, 0.48, 0.42, nil
+    -- without MapWise nothing changes
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(RafeeqArrow._alpha ~= 0, "Rafeeq arrow hidden without MapWise")
+    check(W.waypoint ~= nil, "Rafeeq diamond not placed without MapWise")
+    ns.Nav:Clear()
+    local mw = installMapWise()
+    -- quest target: MapWise routes the quest itself, Rafeeq's arrow and waypoint step aside
+    ns.Nav:SetQuest(7) W.advance(0.2)
+    check(mw.calls[1] == "quest 7 auto", "quest not handed to MapWise: " .. tostring(mw.calls[1]))
+    check(RafeeqArrow._alpha == 0, "Rafeeq arrow visible while MapWise plans the route")
+    W.advance(1.2)
+    check(mw.nav.active, "fake MapWise did not start navigating")
+    check(RafeeqArrow._alpha == 0, "Rafeeq arrow visible while MapWise guides")
+    local mine = W.waypoint
+    W.px = W.px + 0.05 W.advance(5)    -- Rafeeq recomputes its nearest objective every 2 s
+    check(mw.takeovers == 0, "Rafeeq moved the waypoint while MapWise navigated (MapWise marker turned off)")
+    check(W.waypoint == mine, "MapWise's waypoint was replaced")
+    check(W.superTrackedWaypoint == true, "super-track left MapWise's waypoint")
+    -- clearing Rafeeq's target ends the route Rafeeq started
+    ns.Nav:Clear() W.advance(0.2)
+    check(mw.calls[#mw.calls] == "quest stop", "MapWise route not stopped with Rafeeq's arrow: " .. tostring(mw.calls[#mw.calls]))
+    -- a point target: x/y go to MapWise in 0-1
+    mw.calls = {}
+    ns.Nav:SetPoint(1429, 40, 60, "Camp") W.advance(0.2)
+    check(mw.calls[1] == "world 1429 0.400 0.600 Camp", "point not handed to MapWise in 0-1: " .. tostring(mw.calls[1]))
+    check(mw.calls[2] == "routeto Camp", "RouteTo not called: " .. tostring(mw.calls[2]))
+    W.advance(1.2)
+    ns.Nav:Clear() W.advance(0.2)
+    check(mw.calls[#mw.calls] == "nav stop", "MapWise point route not stopped: " .. tostring(mw.calls[#mw.calls]))
+    -- in combat with MapWise's "no routing in combat": Rafeeq guides by itself, no errors
+    mw.calls = {} mw.A.db.combatOpen = false W.waypoint = nil
+    W.enterCombat()
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(mw.calls[1] == "quest 7 auto", "quest not offered to MapWise in combat")
+    check(RafeeqArrow._alpha == 1, "Rafeeq arrow hidden although MapWise refused the route")
+    check(W.waypoint ~= nil, "no diamond although MapWise refused the route")
+    W.leaveCombat() ns.Nav:Clear() mw.A.db.combatOpen = nil
+    -- MapWise accepted but never navigates (no path found): Rafeeq takes over after a few seconds
+    mw.calls = {}
+    local realStart = mw.A.QuestRouting.Start
+    mw.A.QuestRouting.Start = function(_, id, mode) mw.calls[#mw.calls + 1] = "quest " .. id return true end
+    ns.Nav:SetQuest(7) W.advance(10)
+    check(RafeeqArrow._alpha == 1, "Rafeeq arrow stays hidden when MapWise never starts navigating")
+    check(W.waypoint ~= nil, "Rafeeq diamond not placed when MapWise never navigates")
+    ns.Nav:Clear() mw.A.QuestRouting.Start = realStart
+    -- option off: no calls, but a route the player made in MapWise still owns the waypoint
+    RafeeqDB.mapwiseBridge = false
+    mw.calls = {} mw.takeovers = 0
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(#mw.calls == 0, "MapWise called with the bridge off: " .. tostring(mw.calls[1]))
+    check(RafeeqArrow._alpha == 1, "Rafeeq arrow hidden with the bridge off")
+    mw.playerRoute() W.advance(1.2)
+    W.px = W.px - 0.05 W.advance(5)
+    check(mw.takeovers == 0, "Rafeeq fought the player's own MapWise route for the waypoint")
+    -- the player's MapWise route ends: Rafeeq's diamond comes back
+    mw.finish() W.waypoint = nil W.advance(2.2)
+    check(W.waypoint ~= nil and W.superTrackedWaypoint == true, "Rafeeq diamond did not come back after MapWise finished")
+    ns.Nav:Clear() RafeeqDB.mapwiseBridge = true
+    -- a MapWise version we do not know: left alone
+    mw.remove()
+    local mw4 = installMapWise("4.0.0")
+    ns.Nav:SetQuest(7) W.advance(0.3)
+    check(#mw4.calls == 0, "unknown MapWise version was driven: " .. tostring(mw4.calls[1]))
+    ns.Nav:Clear() mw4.remove()
+    -- a MapWise that throws: no Lua error reaches the player, Rafeeq guides by itself
+    local mwx = installMapWise()
+    mwx.A.QuestRouting.Start = function() error("MapWise internal error") end
+    mwx.A.RouteNavigation.State = function() error("MapWise internal error") end
+    ns.Nav:SetQuest(7) W.advance(1)
+    check(RafeeqArrow._alpha == 1, "Rafeeq arrow hidden after MapWise errors")
+    ns.Nav:Clear() mwx.remove()
+    W.waypoint = nil
+end)
+
+scenario("MapWise resizes the map canvas: Rafeeq pins follow", function()
+    if not qdbLoaded then return end
+    local child = WorldMapFrame.ScrollContainer.Child
+    local w0, h0 = child._w, child._h
+    W.viewMap = 1429 WorldMapFrame:Show() W.advance(0.3)
+    -- every single (unmerged) pin must sit at its map percent of the CURRENT canvas width
+    local function misplaced()
+        local n, bad = 0, nil
+        for _, f in ipairs(W.frames) do
+            local d, pt = f.data, f._points[#f._points]
+            if f._parent == child and f._shown and d and d.count == 1 and pt then
+                n = n + 1
+                local want = ((d.px or d.x) / 100) * child._w
+                if math.abs(pt[4] - want) > 1 then bad = ("pin at x=%.0f, should be %.0f"):format(pt[4], want) end
+            end
+        end
+        return n, bad
+    end
+    local n, bad = misplaced()
+    check(n > 0, "no single Rafeeq pin on the world map")
+    check(not bad, "pin misplaced before resize: " .. tostring(bad))
+    child:SetSize(w0 * 2, h0 * 2)   -- MapWise "WoW map - movable" sets its own canvas size
+    n, bad = misplaced()
+    check(not bad, "after MapWise doubled the canvas: " .. tostring(bad))
+    child:SetSize(w0, h0)
+    WorldMapFrame:Hide() W.viewMap = nil
+end)
+
 scenario("quest card window: click a quest, move, resize, close", function()
     if not qdbLoaded then return end
     ns.Guide:Close() ns.Nav:Clear() W.advance(0.6)

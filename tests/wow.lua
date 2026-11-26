@@ -108,12 +108,18 @@ function Frame:SetFont(path, size)
 end
 function Frame:GetStringHeight() return 12 end
 function Frame:GetStringWidth() return #self._text * 6 end
-function Frame:SetWidth(w) self._w = w end
+-- like WoW, OnSizeChanged fires when the size really changes
+local function sized(self, w, h)
+    local changed = w ~= self._w or h ~= self._h
+    self._w, self._h = w, h
+    if changed and self._scripts.OnSizeChanged then W.safe(self._scripts.OnSizeChanged, self, w, h) end
+end
+function Frame:SetWidth(w) sized(self, w, self._h) end
 function Frame:SetHeight(h)
     if type(h) ~= "number" or h ~= h then error("SetHeight: bad argument", 2) end
-    self._h = h
+    sized(self, self._w, h)
 end
-function Frame:SetSize(w, h) self._w, self._h = w, h end
+function Frame:SetSize(w, h) sized(self, w, h) end
 function Frame:GetWidth() return self._w end
 function Frame:GetHeight() return self._h end
 function Frame:SetScale(s)
