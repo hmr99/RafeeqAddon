@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.7-beta1 - 2026-11-26
+- Fixed: Skyborne characters now get quest suggestions and pins for quests their race can take (they saw almost none).
+
 ## v0.9.6-beta1 - 2026-11-25
 - Auto-repair no longer says 'not enough gold' when the grey items being sold would pay for it - it repairs as soon as the sales finish.
 
