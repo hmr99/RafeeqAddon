@@ -290,6 +290,11 @@ function Pins:OnInit()
         if WorldMapFrame.OnMapChanged then
             hooksecurefunc(WorldMapFrame, "OnMapChanged", function() Pins:RefreshWorldMap() end)
         end
+        -- map addons (MapWise) resize the canvas itself: pins are placed in canvas pixels, so follow it
+        local child = canvas()
+        if child and child.HookScript then
+            child:HookScript("OnSizeChanged", function() Pins:RefreshWorldMap() end)
+        end
         if WorldMapFrame.ScrollContainer and WorldMapFrame.ScrollContainer.OnCanvasScaleChanged then
             hooksecurefunc(WorldMapFrame.ScrollContainer, "OnCanvasScaleChanged", function() Pins:RefreshWorldMap() end)
         end

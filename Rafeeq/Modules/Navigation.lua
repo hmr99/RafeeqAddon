@@ -58,8 +58,17 @@ local function waypointAPI()
         and UiMapPoint.CreateFromCoordinates
 end
 
+-- MapWise (when installed) navigates with the same single user waypoint; while it does, the slot is
+-- its own and Rafeeq neither places, clears nor re-super-tracks it.
+local function mapwiseOwns()
+    local B = ns.MapWiseBridge
+    if not B then return false end
+    local ok, owns = pcall(B.OwnsWaypoint, B)
+    return ok and owns
+end
+
 local function clearWaypoint()
-    if ourWaypoint and waypointAPI() then pcall(C_Map.ClearUserWaypoint) end
+    if ourWaypoint and waypointAPI() and not mapwiseOwns() then pcall(C_Map.ClearUserWaypoint) end
     ourWaypoint = nil
 end
 
@@ -69,6 +78,7 @@ local function syncWaypoint()
         return
     end
     if not target or not target.map then return end -- keep the last marker while we have no new spot
+    if mapwiseOwns() then ourWaypoint = nil return end -- placed again once MapWise is done
     local key = ("%d:%.1f:%.1f"):format(target.map, target.x, target.y)
     if key == ourWaypoint then return end
     if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(target.map) then return end
@@ -88,7 +98,12 @@ Nav.SyncWaypoint = syncWaypoint
 -- its tracker) and other addons can clear the waypoint or the CVar; the pin then stays on the map and
 -- minimap but the diamond is gone from the world. Checked about once a second, put back when lost.
 local function keepDiamond()
-    if not ns.db.worldMarker or not ourWaypoint or not waypointAPI() then return end
+    if not ns.db.worldMarker or not waypointAPI() then return end
+    if mapwiseOwns() then ourWaypoint = nil return end
+    if not ourWaypoint then
+        if target and target.map then syncWaypoint() end -- MapWise finished: our diamond comes back
+        return
+    end
     if GetCVar and SetCVar and GetCVar("showInGameNavigation") ~= "1" then
         pcall(SetCVar, "showInGameNavigation", "1")
     end
@@ -109,6 +124,11 @@ local function syncGPS()
     if ns.GPSBridge then pcall(ns.GPSBridge.Sync, ns.GPSBridge) end
 end
 
+-- the player picked a new target: offer it to MapWise (if installed and the option is on)
+local function sendMapWise()
+    if ns.MapWiseBridge and target then pcall(ns.MapWiseBridge.Send, ns.MapWiseBridge, target) end
+end
+
 function Nav:ApplyWorldMarkerSetting()
     if ns.db.worldMarker and SetCVar then pcall(SetCVar, "showInGameNavigation", "1") end
     if ns.db.worldMarker then syncWaypoint() else clearWaypoint() end
@@ -117,6 +137,7 @@ end
 function Nav:SetPoint(map, x, y, text)
     arrivedKey = nil
     target = { mode = "point", map = map, x = x, y = y, label = text }
+    sendMapWise()
     syncWaypoint()
     syncGPS()
     self:Show()
@@ -127,6 +148,7 @@ function Nav:SetQuest(questID)
     target = { mode = "quest", questID = questID }
     if ns.char then ns.char.cardQuest, ns.char.cardClosed = questID, false end
     self:Recompute()
+    sendMapWise()
     syncWaypoint()
     syncGPS()
     self:Show()
@@ -137,6 +159,7 @@ function Nav:Clear()
     lastDistance = nil
     clearWaypoint()
     if ns.GPSBridge then pcall(ns.GPSBridge.OnTargetCleared, ns.GPSBridge) end
+    if ns.MapWiseBridge then pcall(ns.MapWiseBridge.OnTargetCleared, ns.MapWiseBridge) end
     if frame then frame:Hide() end
 end
 
@@ -276,7 +299,7 @@ function Nav:Tick()
     if not target then frame:Hide() return end
     -- while AzerothGPS routes along the roads, our straight-line arrow would contradict it: hide it
     -- (the logic keeps running for the card, the diamond and the arrival alert)
-    local guiding = ns.GPSBridge and ns.GPSBridge:Guiding()
+    local guiding = (ns.GPSBridge and ns.GPSBridge:Guiding()) or (ns.MapWiseBridge and ns.MapWiseBridge:Guiding())
     frame:SetAlpha(guiding and 0 or 1)
     frame:EnableMouse(not guiding)
     recomputeTimer = recomputeTimer + 0.05

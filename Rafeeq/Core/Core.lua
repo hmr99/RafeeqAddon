@@ -31,7 +31,8 @@ local defaults = {
     guideModels  = true,
     worldMarker  = true,
     plateMarks   = true,
-    gpsBridge    = true,
+    gpsBridge    = false, -- AzerothGPS guidance retired: MapWise guides instead (Humaid, 0.10.0)
+    mapwiseBridge = true,
     plateGlow    = true,
     plateCVars   = true,
     plateGlowStyle = "soft",
@@ -97,6 +98,8 @@ frame:SetScript("OnEvent", function(_, event, ...)
         RafeeqDB = RafeeqDB or {}
         RafeeqCharDB = RafeeqCharDB or {}
         applyDefaults(RafeeqDB, defaults)
+        -- 0.10.0: guidance goes through MapWise, the AzerothGPS hand-off is switched off for everyone
+        if not RafeeqDB.gpsBridgeRetired then RafeeqDB.gpsBridge, RafeeqDB.gpsBridgeRetired = false, true end
         ns.db = RafeeqDB
         ns.char = RafeeqCharDB
         ns.char.collapsed = ns.char.collapsed or {}
