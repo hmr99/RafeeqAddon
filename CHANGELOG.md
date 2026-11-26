@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.0-beta1 - 2026-11-26
+- New: works with MapWise. "Guide me" opens a MapWise route for the quest or point, and Rafeeq's arrow steps aside while MapWise guides. If MapWise cannot route (for example in combat), Rafeeq guides you itself.
+- Rafeeq and MapWise no longer fight over the in-world diamond: while a MapWise route runs, Rafeeq leaves it alone.
+- Fixed: quest pins stay in place when a map addon resizes the world map.
+- Removed: the AzerothGPS hand-off. Guidance now goes through MapWise.
+
 ## v0.9.7-beta1 - 2026-11-26
 - Fixed: Skyborne characters now get quest suggestions and pins for quests their race can take (they saw almost none).
 
