@@ -35,7 +35,6 @@ local ITEMS = {
     { key = "guideCard",    label = "OPT_GUIDE" },
     { key = "guideModels",  label = "OPT_GUIDE_MODELS" },
     { key = "worldMarker",  label = "OPT_WORLD_MARKER" },
-    { key = "gpsBridge",    label = "OPT_GPS_BRIDGE" },
     { key = "mapwiseBridge", label = "OPT_MAPWISE_BRIDGE" },
     { key = "plateMarks",   label = "OPT_PLATE_MARKS" },
     { key = "plateGlow",    label = "OPT_PLATE_GLOW" },

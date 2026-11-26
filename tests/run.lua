@@ -65,12 +65,15 @@ local function setLog(list) W.log = list W.fire("QUEST_LOG_UPDATE") W.advance(0.
 -- 3) Scenarios: a play session
 ---------------------------------------------------------------------------
 scenario("login", function()
+    -- an upgrading player: an older Rafeeq saved the AzerothGPS hand-off as on
+    RafeeqDB = { gpsBridge = true }
     W.fire("ADDON_LOADED", "Rafeeq")
     W.fire("PLAYER_LOGIN")
     W.fire("PLAYER_ENTERING_WORLD")
     W.advance(1)
     check(RafeeqTracker and RafeeqTracker:IsShown(), "tracker not shown after login")
     check(type(RafeeqDB) == "table", "saved variables missing")
+    check(RafeeqDB.gpsBridge == false, "AzerothGPS hand-off still on after upgrading (MapWise guides now)")
     check(RafeeqDB.language == nil, "language should not be pre-chosen on first login")
     check(RafeeqLanguagePicker and RafeeqLanguagePicker:IsShown(), "first-run language picker not shown")
     -- pick Arabic in the picker
@@ -490,69 +493,28 @@ scenario("nameplate marks: quest mobs, drop sources, glow options", function()
     W.advance(0.6)
 end)
 
-scenario("AzerothGPS bridge: road route + its arrow", function()
+scenario("AzerothGPS installed: Rafeeq no longer hands guidance to it", function()
+    -- Humaid retired the AzerothGPS hand-off in 0.10.0: MapWise guides instead. With AzerothGPS
+    -- installed, Rafeeq must not call it, and its own arrow stays.
     if not qdbLoaded then return end
     W.map, W.px, W.py = 1429, 0.48, 0.42
-    -- without AzerothGPS nothing changes
-    ns.Nav:SetQuest(7) W.advance(0.3)
-    check(RafeeqArrow._alpha ~= 0, "Rafeeq arrow hidden without AzerothGPS")
-    ns.Nav:Clear()
-    -- fake AzerothGPS: its API table, /agps and its own /way (TomTom absent)
     local calls = {}
     AzerothGPS = { version = 21 }
     SlashCmdList.AZEROTHGPS = function(msg) calls[#calls + 1] = "agps " .. msg end
     SLASH_AZEROTHGPSWAY1 = "/way"
     SlashCmdList.AZEROTHGPSWAY = function(msg) calls[#calls + 1] = "way " .. msg end
     AzerothGPSArrow = CreateFrame("Frame", "AzerothGPSArrow") AzerothGPSArrow:Show()
-    -- AzerothGPS still holds a stop from before a /reload (Rafeeq does not know about it)
-    local agpsStops = { "old stop from last session" }
-    SlashCmdList.AZEROTHGPS = function(msg) calls[#calls + 1] = "agps " .. msg if msg == "clear" then agpsStops = {} end end
-    SlashCmdList.AZEROTHGPSWAY = function(msg) calls[#calls + 1] = "way " .. msg agpsStops[#agpsStops + 1] = msg end
-    ns.Nav:SetQuest(7) W.advance(0.6)
-    check(calls[1] == "agps clear", "first stop sent without clearing AzerothGPS's old route: " .. tostring(calls[1]))
-    check(calls[2] and calls[2]:find("^way #1429 %d+%.%d+ %d+%.%d+ Kobold Camp Cleanup$"),
-        "no /way stop sent to AzerothGPS: " .. tostring(calls[2]))
-    check(#agpsStops == 1, "AzerothGPS route should hold only Rafeeq's stop, holds " .. #agpsStops)
-    check(RafeeqArrow._alpha == 0, "Rafeeq arrow still visible while AzerothGPS guides")
-    -- small moves of the nearest spawn do not spam new routes
-    local n = #calls
-    W.px = W.px + 0.002 W.advance(2.6)
-    check(#calls == n, "re-routed for a tiny move: " .. table.concat(calls, " | "))
-    -- another quest: old route cleared, new stop sent
-    ns.Nav:SetQuest(33) W.advance(0.3)
-    check(calls[n + 1] == "agps clear" and calls[n + 2] and calls[n + 2]:find("Wolves Across the Border", 1, true),
-        "switching quests did not replace the route: " .. table.concat(calls, " | "))
-    -- titles never carry '#' (AzerothGPS reads a trailing #word as an icon)
-    ns.Nav:SetPoint(1429, 50, 50, "Camp #2") W.advance(0.2)
-    check(not calls[#calls]:find("#2", 1, true), "title with '#' passed through: " .. calls[#calls])
-    -- clearing the arrow clears the route
+    ns.Nav:SetQuest(7) W.advance(2.6)
+    check(#calls == 0, "Rafeeq still sends routes to AzerothGPS: " .. tostring(calls[1]))
+    check(RafeeqArrow._alpha == 1, "Rafeeq arrow hidden next to AzerothGPS")
     ns.Nav:Clear()
-    check(calls[#calls] == "agps clear", "route not cleared with the arrow")
-    -- option off: no calls, Rafeeq's arrow back
-    RafeeqDB.gpsBridge = false
-    n = #calls
-    ns.Nav:SetQuest(7) W.advance(0.3)
-    check(#calls == n, "AzerothGPS called with the bridge turned off")
-    check(RafeeqArrow._alpha == 1, "Rafeeq arrow not back with the bridge off")
-    ns.Nav:Clear() RafeeqDB.gpsBridge = true
+    check(#calls == 0, "Rafeeq cleared AzerothGPS's route: " .. tostring(calls[1]))
+    -- no AzerothGPS checkbox in the options any more
+    if RafeeqOptions then
+        check(not textOf(RafeeqOptions):find("AzerothGPS", 1, true), "AzerothGPS option still shown")
+    end
     AzerothGPS, SlashCmdList.AZEROTHGPS, SLASH_AZEROTHGPSWAY1, SlashCmdList.AZEROTHGPSWAY = nil, nil, nil, nil
-    -- AzerothGPS with its arrow window OFF (directions text only): Rafeeq's straight-line arrow must still
-    -- step aside, and no drift alert may contradict the road route
-    AzerothGPS = { version = 21 }
-    SlashCmdList.AZEROTHGPS = function(msg) calls[#calls + 1] = "agps " .. msg end
-    SLASH_AZEROTHGPSWAY1 = "/way"
-    SlashCmdList.AZEROTHGPSWAY = function(msg) calls[#calls + 1] = "way " .. msg end
-    AzerothGPSArrow:Hide()
-    ns.Nav:SetQuest(7) W.advance(0.3)
-    check(RafeeqArrow._alpha == 0, "Rafeeq arrow visible next to AzerothGPS's directions (no GPS arrow window)")
-    W.sounds = {} W.speed = 7 W.facing = math.pi W.advance(3.5)
-    local drift = 0
-    for _, id in ipairs(W.sounds) do if id == 846 then drift = drift + 1 end end
-    check(drift == 0, "drift alert fired while AzerothGPS routes along the roads")
-    W.speed = 0 W.facing = 0
-    ns.Nav:Clear()
-    AzerothGPS, SlashCmdList.AZEROTHGPS, SLASH_AZEROTHGPSWAY1, SlashCmdList.AZEROTHGPSWAY = nil, nil, nil, nil
-    AzerothGPSArrow = nil
+    AzerothGPSArrow:Hide() AzerothGPSArrow = nil
 end)
 
 -- Fake MapWise 3.0.11, modelled on its code (MapWiseAPI = its namespace, no documented API):

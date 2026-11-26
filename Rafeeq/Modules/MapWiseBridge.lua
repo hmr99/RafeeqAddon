@@ -1,4 +1,5 @@
--- Rafeeq: bridge to MapWise (optional, when the player has it installed).
+-- Rafeeq: bridge to MapWise (optional, when the player has it installed). Since 0.10.0 this is
+-- Rafeeq's only route hand-off; the AzerothGPS one is switched off.
 -- MapWise enhances the Blizzard world map and plans routes over roads, flight paths and boats, with
 -- its own minimap line, checkpoints and an in-world marker. It has no documented API for other
 -- addons; it exposes its namespace as the global MapWiseAPI. We only call a few of its entry points,
@@ -108,7 +109,6 @@ end
 -- Called when the player picks a target in Rafeeq ("guide me", a pin, a tracker click).
 function MW:Send(t)
     if not t or not self:Active() then return false end
-    if ns.GPSBridge and ns.GPSBridge:Active() then return false end -- AzerothGPS bridge already routes
     local A = api()
     local ok = false
     if t.mode == "quest" and t.questID and questRouting(A) then
