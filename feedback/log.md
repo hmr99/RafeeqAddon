@@ -88,3 +88,23 @@ Tests: 33/33 with QuestieDB, 33/33 without (1 scenario added today). Latest rele
 - **Upstream** - QuestieDB 4377c98 (1.1.6): contract 4 (min supported 1), matches `RequireContract(4)`.
   No Forever API change notes after 1.60.1 (Nov 11/13 hotfixes are gameplay only).
 - **Housekeeping** - branch deletion blocked by the proxy: `fix/repair-after-greys` can be deleted by hand.
+
+## 2026-11-26
+
+Tests: 34/34 with QuestieDB, 34/34 without (1 scenario added today). Latest release: v0.9.7-beta1.
+
+- **QA (new scenario)** - `other races: Horde orc and Skyborne get the quests their race can take`
+  (Horde orc + Horde Skyborne in Durotar, orc in Elwynn) - bug - `Rafeeq/Core/Data.lua`: Forever's
+  Skyborne race masks use bits 32/33, the client's `bit.band` is 32-bit, so a Skyborne character was
+  offered no race-limited quest at all (0 in Durotar vs 22+ for an orc). Fixed: race bit tested with
+  plain arithmetic; `Data:Init` resets the race/class/faction caches. Emulator `bit.band` now wraps
+  to 32 bits like the client.
+  [PR #6](https://github.com/hmr99/RafeeqAddon/pull/6), shipped in
+  [v0.9.7-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.9.7-beta1) (CurseForge HTTP 200, file 9823172).
+- **QA (static review)** - `Data.lua`: no new globals, no protected or combat-time calls, `hasBit` local.
+- **GitHub issues** - none open, no new comments.
+- **CurseForge comments** - page could not be read (fetch permission not answered); nothing triaged.
+- **Upstream** - QuestieDB 498734b (1.1.6): contract now 5 (adds `Support.Get("PetFood")`, additive),
+  min supported 1, so `RequireContract(4)` still passes. No Forever API change notes after 1.60.1.
+- **Housekeeping** - branch deletion blocked by the proxy: `fix/skyborne-race-mask` and
+  `fix/repair-after-greys` can be deleted by hand.
