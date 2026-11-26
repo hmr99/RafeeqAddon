@@ -868,6 +868,47 @@ scenario("merchant: low-gold player, greys pay for the repair; empty bags stay q
     MerchantFrame._shown = false
 end)
 
+scenario("other races: Horde orc and Skyborne get the quests their race can take", function()
+    -- An orc and a Horde Skyborne (Forever race 96, requiredRaces bit 33) look at Durotar.
+    -- QuestieDB masks for Skyborne exceed 32 bits (docs/api.md "Avoid 32-bit bit operations").
+    if not qdbLoaded then return end
+    local saved = { race = W.race, raceId = W.raceId, faction = W.faction, map = W.map, level = W.level }
+    local function hasBit(mask, b) return mask and mask ~= 0 and math.floor(mask / b) % 2 == 1 end
+    local function listFor(race, raceId, map)
+        W.race, W.raceId, W.faction = race, raceId, "Horde"
+        ns.Data:Init()
+        local ids = {}
+        for _, q in ipairs(ns.Data:AvailableOnMap(map, W.level)) do ids[q.id] = true end
+        return ids
+    end
+    W.level = 5
+    local orc = listFor("Orc", 2, 1411)
+    local sky = listFor("Skyborne", 96, 1411)
+    local orcN, skyN, missing = 0, 0, {}
+    for id in pairs(orc) do
+        orcN = orcN + 1
+        local races = QuestDB.Get(id, "requiredRaces")
+        if hasBit(races, 8589934592) and not sky[id] then missing[#missing + 1] = id end
+    end
+    for id in pairs(sky) do
+        skyN = skyN + 1
+        local races = QuestDB.Get(id, "requiredRaces")
+        check(not races or races == 0 or hasBit(races, 8589934592),
+            "Skyborne offered quest " .. id .. " that excludes Skyborne (races " .. tostring(races) .. ")")
+    end
+    check(orcN > 0, "no quests offered to an orc in Durotar")
+    check(skyN > 0, "no quests offered to a Horde Skyborne in Durotar")
+    check(#missing == 0, ("Skyborne missed %d Horde quests open to Skyborne, e.g. %s"):format(#missing, tostring(missing[1])))
+    -- an orc in Elwynn never gets Alliance-only quests
+    for id in pairs(listFor("Orc", 2, 1429)) do
+        local races = QuestDB.Get(id, "requiredRaces")
+        check(not races or races == 0 or hasBit(races, 2), "orc offered Alliance-only quest " .. id)
+    end
+    W.race, W.raceId, W.faction, W.map, W.level = saved.race, saved.raceId, saved.faction, saved.map, saved.level
+    ns.Data:Init()
+    check(ns.Data.ready, "data layer did not come back for the human warrior")
+end)
+
 scenario("leaked globals (end of session)", function()
     for k in pairs(_G) do
         if not before[k] and not ALLOWED_GLOBALS[k] then check(false, "unexpected global: " .. tostring(k)) end

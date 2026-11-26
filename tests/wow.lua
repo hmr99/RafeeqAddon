@@ -211,7 +211,9 @@ function hooksecurefunc(a, b, c)
     t[name] = function(...) local r = { old(...) } W.safe(fn, ...) return unpack(r) end
 end
 bit = {
+    -- WoW's bit library works on 32-bit integers: bits 32+ are lost.
     band = function(a, b)
+        a, b = a % 4294967296, b % 4294967296
         local r, p = 0, 1
         while a > 0 and b > 0 do
             local x, y = a % 2, b % 2

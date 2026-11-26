@@ -45,6 +45,7 @@ function Data:Init()
     local classFile = select(2, UnitClass("player"))
     classMask = enum.classKeys and enum.classKeys[classFile]
     self.npcFlags = enum.npcFlags or {}
+    self:ResetCharacterCaches()
     self.lib = lib
     self.ready = true
     return true
@@ -291,6 +292,18 @@ end
 Data.IsDone, Data.InLog = isDone, inLog
 
 local staticOK -- [questID] = true for race/class-eligible, non-special quests
+local availCache, flagCache = {}, {}
+
+-- Caches built from the character's race, class and faction (set in Init).
+function Data:ResetCharacterCaches()
+    staticOK, availCache, flagCache = nil, {}, {}
+end
+
+-- Is the single bit `b` set in `mask`? Plain arithmetic: Forever's Skyborne race bits (32/33)
+-- do not survive the client's 32-bit bit library (QuestieDB docs/api.md, race masks).
+local function hasBit(mask, b)
+    return math.floor(mask / b) % 2 == 1
+end
 
 local function buildStatic()
     staticOK = {}
@@ -299,7 +312,7 @@ local function buildStatic()
         local races, classes, special, skill = QuestDB.Get(id, "requiredRaces"), QuestDB.Get(id, "requiredClasses"),
             QuestDB.Get(id, "specialFlags"), QuestDB.Get(id, "requiredSkill")
         local ok = true
-        if races and races ~= 0 and raceMask and band and band(races, raceMask) == 0 then ok = false end
+        if races and races ~= 0 and raceMask and not hasBit(races, raceMask) then ok = false end
         if ok and classes and classes ~= 0 and classMask and band and band(classes, classMask) == 0 then ok = false end
         if ok and special and special ~= 0 then ok = false end      -- repeatable / event-gated
         if ok and skill then ok = false end                          -- profession quests: later version
@@ -328,7 +341,6 @@ local function prereqsMet(id)
 end
 
 -- Available quests whose giver is on `uiMapID`. Returns list of { id, name, level, point }
-local availCache = {}
 function Data:InvalidateAvailable() availCache = {} end
 
 function Data:AvailableOnMap(uiMapID, playerLevel)
@@ -372,7 +384,6 @@ function Data:_ComputeAvailable(uiMapID, playerLevel)
 end
 
 -- NPCs with a given flag on a map (vendors, repair, innkeepers, flight masters, trainers)
-local flagCache = {}
 function Data:NpcsWithFlag(flagName, uiMapID, limit)
     local key = flagName .. ":" .. uiMapID
     if flagCache[key] then return flagCache[key] end
