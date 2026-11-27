@@ -172,6 +172,12 @@ function Nav:Recompute()
     if not target or target.mode ~= "quest" then return end
     local pts, turnIn = self:QuestPoints(target.questID)
     local p = Data:Nearest(pts)
+    if not p and pts[1] then
+        -- you know where you are, but no point shares your continent: aim at one anyway so the
+        -- arrow can say "another continent" and name the zone instead of "position unknown"
+        local _, _, _, pc = Data:Player()
+        if pc then p = pts[1] end
+    end
     local qname = Data:QuestName(target.questID) or ("#" .. target.questID)
     target.noData = (#pts == 0)
     if p then

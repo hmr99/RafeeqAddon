@@ -29,6 +29,8 @@ local W = {
         [1411] = { oN = 0, oW = -3000, W = 3000, H = 2000 },      -- zone right next to it (east)
         [1415] = { oN = 3000, oW = 4500, W = 12000, H = 8000 },   -- continent containing both
         [99999] = { oN = 90000, oW = 90000, W = 1000, H = 800 }, -- far-away map with no quests
+        [1438] = { cont = 1, oN = 10000, oW = 2000, W = 3000, H = 3000 }, -- Teldrassil (Kalimdor)
+        [291] = { cont = 36, oN = 0, oW = 0, W = 500, H = 400 },         -- a dungeon (own continent)
     },
 }
 
@@ -336,18 +338,18 @@ C_GossipInfo = {
 function CreateVector2D(x, y) return { x = x, y = y, GetXY = function(s) return s.x, s.y end } end
 C_Map = {
     GetBestMapForUnit = function() return W.map end,
-    GetMapInfo = function(id) return { mapID = id, name = ({ [1411] = "Durotar", [1429] = "Elwynn Forest" })[id] or ("Map " .. id) } end,
+    GetMapInfo = function(id) return { mapID = id, name = ({ [1411] = "Durotar", [1429] = "Elwynn Forest", [1438] = "Teldrassil", [291] = "The Deadmines" })[id] or ("Map " .. id) } end,
     GetPlayerMapPosition = function() if W.instance then return nil end return CreateVector2D(W.px, W.py) end,
     -- fake geography on continent 0: each map is a rectangle (oN/oW = world north/west of its
     -- top-left corner, W/H = size in yards). Elwynn (1429) and Durotar (1411) sit inside the
     -- continent map 1415; map 99999 is far from both.
     GetWorldPosFromMapPos = function(map, v)
         local m = W.geo[map] or W.geo[1429]
-        return 0, CreateVector2D(m.oN - v.y * m.H, m.oW - v.x * m.W)
+        return m.cont or 0, CreateVector2D(m.oN - v.y * m.H, m.oW - v.x * m.W)
     end,
     GetMapPosFromWorldPos = function(cont, v, map)
         local m = W.geo[map]
-        if not m then return nil end
+        if not m or (m.cont or 0) ~= cont then return nil end
         local wx, wy = v:GetXY()
         return map, CreateVector2D((m.oW - wy) / m.W, (m.oN - wx) / m.H)
     end,
