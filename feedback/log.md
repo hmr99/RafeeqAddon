@@ -114,3 +114,23 @@ Tests: 34/34 with QuestieDB, 34/34 without (1 scenario added today). Latest rele
   retired on his call. [PR #7](https://github.com/hmr99/RafeeqAddon/pull/7), shipped in
   [v0.10.0-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.10.0-beta1) (CurseForge HTTP 200, file 9832863).
   Tests 36/36 both modes. Not provable in the emulator: real MapWise planning timing, its marker in game.
+
+## 2026-11-27
+
+Tests: 37/37 with QuestieDB, 37/37 without (1 scenario added today). Latest release: v0.10.1-beta1.
+
+- **QA (new scenario)** - `dungeon run + far-away quest: the arrow names the real reason` (Teldrassil
+  quest tracked from Elwynn; dungeon entry with its own map and no position; quest finished in
+  combat; walk out to the turn-in) - bug - `Rafeeq/Modules/Navigation.lua`: when no quest point shares
+  the player's continent, `Data:Nearest` returned nil, so the arrow said "Your position is unknown
+  here" with no zone. Fixed: aim at a quest point when the player's position is known, so it says
+  "Target is on another continent" and names the zone. Emulator maps now carry a continent.
+  [PR #8](https://github.com/hmr99/RafeeqAddon/pull/8), shipped in
+  [v0.10.1-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.10.1-beta1) (CurseForge HTTP 200, file 9841154).
+- **QA (static review)** - `Navigation.lua` Recompute: no new globals, no protected or combat-time
+  calls; instance behaviour (no position) unchanged.
+- **GitHub issues** - none open, no new comments.
+- **CurseForge comments** - page could not be read (fetch permission not answered); nothing triaged.
+- **Upstream** - QuestieDB 5c145e3: contract 5, min supported unchanged, `RequireContract(4)` passes.
+  No Forever API change notes after 1.60.1.
+- **Housekeeping** - branch deletion blocked by the proxy: `fix/other-continent-arrow` can be deleted by hand.
