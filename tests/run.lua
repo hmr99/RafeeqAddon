@@ -1048,6 +1048,49 @@ scenario("other races: Horde orc and Skyborne get the quests their race can take
     check(ns.Data.ready, "data layer did not come back for the human warrior")
 end)
 
+scenario("dungeon run + far-away quest: the arrow names the real reason", function()
+    -- A human in Elwynn tracks a Teldrassil quest (other continent), then walks into a dungeon.
+    if not qdbLoaded then return end
+    local saved = { map = W.map, px = W.px, py = W.py, log = W.log }
+    local function arrowTexts() return textOf(RafeeqArrow) end
+    local qid
+    for _, id in ipairs({ 456, 457, 458, 459, 3116, 916 }) do
+        for _, o in ipairs(ns.Data:QuestObjectives(id)) do
+            for _, p in ipairs(o.points or {}) do if p.map == 1438 then qid = id end end
+        end
+        if qid then break end
+    end
+    check(qid, "setup: no Teldrassil quest with spawn points in QuestieDB")
+    if not qid then return end
+    W.map, W.px, W.py = 1429, 0.48, 0.42
+    W.log = { { questID = qid, title = "Teldrassil quest", level = 3, objectives = {} } }
+    W.fire("QUEST_LOG_UPDATE")
+    ns.Nav:SetQuest(qid) W.advance(2.5)
+    local t = arrowTexts()
+    check(t:find(ns.L("NAV_OTHER_CONTINENT"), 1, true), "other-continent target not explained: " .. t)
+    check(not t:find(ns.L("NAV_NO_POSITION"), 1, true), "said 'position unknown' while standing in Elwynn: " .. t)
+    check(t:find("Teldrassil", 1, true), "target zone missing from the label: " .. t)
+    -- into a dungeon: own map, no map position, nameplates locked
+    ns.Nav:SetQuest(7) W.log[2] = { questID = 7, title = "Kobold Camp Cleanup", level = 2, objectives = {} }
+    W.fire("QUEST_LOG_UPDATE") W.advance(2.5)
+    check(arrowTexts():find("yd"), "setup: Elwynn quest has no distance")
+    W.inInstance, W.instance, W.map = true, true, 291
+    W.fire("PLAYER_ENTERING_WORLD") W.fire("ZONE_CHANGED_NEW_AREA") W.advance(2.5)
+    t = arrowTexts()
+    check(t:find(ns.L("NAV_NO_POSITION"), 1, true), "no 'position unknown' inside the dungeon: " .. t)
+    -- fight, finish the quest in combat, leave combat, walk out
+    W.enterCombat()
+    W.log[2].complete = true W.fire("QUEST_LOG_UPDATE") W.advance(2.5)
+    W.leaveCombat() W.advance(0.5)
+    W.inInstance, W.instance, W.map = false, false, 1429
+    W.fire("PLAYER_ENTERING_WORLD") W.fire("ZONE_CHANGED_NEW_AREA") W.advance(2.5)
+    t = arrowTexts()
+    check(t:find("yd") and t:find(">", 1, true), "no turn-in direction after leaving the dungeon: " .. t)
+    ns.Nav:Clear()
+    W.map, W.px, W.py, W.log = saved.map, saved.px, saved.py, saved.log
+    W.fire("QUEST_LOG_UPDATE") W.advance(0.5)
+end)
+
 scenario("leaked globals (end of session)", function()
     for k in pairs(_G) do
         if not before[k] and not ALLOWED_GLOBALS[k] then check(false, "unexpected global: " .. tostring(k)) end
