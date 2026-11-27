@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.10.1-beta1 - 2026-11-27
+- Arrow: a quest on another continent now says "Target is on another continent" and names the zone, instead of "Your position is unknown here".
+
 ## v0.10.0-beta1 - 2026-11-26
 - New: works with MapWise. "Guide me" opens a MapWise route for the quest or point, and Rafeeq's arrow steps aside while MapWise guides. If MapWise cannot route (for example in combat), Rafeeq guides you itself.
 - Rafeeq and MapWise no longer fight over the in-world diamond: while a MapWise route runs, Rafeeq leaves it alone.
