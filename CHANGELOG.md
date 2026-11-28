@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.10.2-beta1 - 2026-11-28
+- Abandoning the quest the arrow is guiding to now clears the arrow and its guide card.
+
 ## v0.10.1-beta1 - 2026-11-27
 - Arrow: a quest on another continent now says "Target is on another continent" and names the zone, instead of "Your position is unknown here".
 
