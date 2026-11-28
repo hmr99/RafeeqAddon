@@ -134,3 +134,21 @@ Tests: 37/37 with QuestieDB, 37/37 without (1 scenario added today). Latest rele
 - **Upstream** - QuestieDB 5c145e3: contract 5, min supported unchanged, `RequireContract(4)` passes.
   No Forever API change notes after 1.60.1.
 - **Housekeeping** - branch deletion blocked by the proxy: `fix/other-continent-arrow` can be deleted by hand.
+
+## 2026-11-28
+
+Tests: 38/38 with QuestieDB, 38/38 without (1 scenario added today). Latest release: v0.10.2-beta1.
+
+- **QA (new scenario)** - `abandon the tracked quest: arrow, card and pins let go of it` (arrow + guide
+  card on a quest, then abandon it from the log) - bug - `Rafeeq/Modules/Navigation.lua`: the target
+  was cleared on `QUEST_TURNED_IN` only, so after abandoning the tracked quest the arrow kept guiding
+  to it and the guide card kept showing it. Fixed: clear on `QUEST_REMOVED` and refresh the card.
+  [PR #9](https://github.com/hmr99/RafeeqAddon/pull/9), shipped in
+  [v0.10.2-beta1](https://github.com/hmr99/RafeeqAddon/releases/tag/v0.10.2-beta1) (CurseForge HTTP 200, file 9863251).
+- **QA (static review)** - `Navigation.lua` OnInit: no new globals, no protected or combat-time calls;
+  Guide refresh wrapped in pcall.
+- **GitHub issues** - none open, no new comments.
+- **CurseForge comments** - page could not be read (fetch permission not answered); nothing triaged.
+- **Upstream** - QuestieDB 593e1d5: contract 5, `RequireContract(4)` passes. No Forever API change
+  notes after 1.60.1.
+- **Housekeeping** - branch deletion blocked by the proxy: `fix/abandon-clears-arrow` can be deleted by hand.
