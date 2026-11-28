@@ -418,6 +418,13 @@ function Nav:OnInit()
     ns:On("QUEST_TURNED_IN", function(_, questID)
         if target and target.mode == "quest" and target.questID == questID then Nav:Clear() end
     end)
+    -- quest abandoned (or otherwise dropped from the log) -> stop guiding to it
+    ns:On("QUEST_REMOVED", function(_, questID)
+        if target and target.mode == "quest" and target.questID == questID then
+            Nav:Clear()
+            if ns.Guide and ns.Guide.Refresh then pcall(ns.Guide.Refresh, ns.Guide) end
+        end
+    end)
     ns:On("QUEST_LOG_UPDATE", function()
         if target and target.mode == "quest" then recomputeTimer = 99 end
     end)
