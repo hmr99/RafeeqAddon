@@ -1091,6 +1091,35 @@ scenario("dungeon run + far-away quest: the arrow names the real reason", functi
     W.fire("QUEST_LOG_UPDATE") W.advance(0.5)
 end)
 
+scenario("abandon the tracked quest: arrow, card and pins let go of it", function()
+    -- A player follows the arrow to a quest, opens its card, then abandons it from the quest log.
+    if not qdbLoaded then return end
+    local saved = { map = W.map, px = W.px, py = W.py, log = W.log }
+    W.map, W.px, W.py = 1429, 0.48, 0.42
+    W.log = {
+        { questID = 7, title = "Kobold Camp Cleanup", level = 2, objectives = { { text = "Kobold Vermin slain: 1/10", finished = false } } },
+        { questID = 33, title = "Wolves Across the Border", level = 2, objectives = { { text = "Tough Wolf Meat: 0/8", finished = false } } },
+    }
+    W.fire("QUEST_LOG_UPDATE") W.advance(0.5)
+    ns.Nav:SetQuest(7) W.advance(2.5)
+    check(RafeeqArrow:IsShown() and textOf(RafeeqArrow):find("yd"), "setup: arrow not guiding to quest 7")
+    check(RafeeqGuide and RafeeqGuide:IsShown(), "setup: guide card not shown for the tracked quest")
+    -- abandon: the client removes it from the log, then fires QUEST_REMOVED + QUEST_LOG_UPDATE
+    table.remove(W.log, 1)
+    W.fire("QUEST_REMOVED", 7) W.fire("QUEST_LOG_UPDATE") W.advance(2.5)
+    local t = ns.Nav:Target()
+    check(not (t and t.mode == "quest" and t.questID == 7), "arrow still guides to the abandoned quest")
+    check(not (RafeeqGuide:IsShown() and textOf(RafeeqGuide):find("Kobold Camp Cleanup", 1, true)),
+        "guide card still shows the abandoned quest")
+    check(not textOf(RafeeqTracker):find("Kobold Camp Cleanup", 1, true), "tracker still lists the abandoned quest")
+    -- a quest that is still in the log keeps working
+    ns.Nav:SetQuest(33) W.advance(2.5)
+    check(RafeeqArrow:IsShown(), "arrow gone for a quest still in the log")
+    ns.Nav:Clear()
+    W.map, W.px, W.py, W.log = saved.map, saved.px, saved.py, saved.log
+    W.fire("QUEST_LOG_UPDATE") W.advance(0.5)
+end)
+
 scenario("leaked globals (end of session)", function()
     for k in pairs(_G) do
         if not before[k] and not ALLOWED_GLOBALS[k] then check(false, "unexpected global: " .. tostring(k)) end
